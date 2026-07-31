@@ -1,5 +1,5 @@
 ---
-title: "Monitor Agent Pipelines and System Health"
+title: "Monitor Pipeline Runs and Agent Execution in Sericin"
 sidebarTitle: "Monitoring"
 description: "Track the status of running and completed pipeline executions, view per-step outcomes, and set up alerts for failures or policy violations."
 ---
@@ -55,12 +55,7 @@ Each run record contains a breakdown of every step that executed. Step-level det
 - **Policy result** — whether the governing policy returned `ALLOW` or `DENY`
 - **Outcome** — `succeeded`, `failed`, or `skipped`
 
-Access step detail in the dashboard by opening a run in **Orchestration > Runs** and selecting the **Steps** tab. You can also retrieve it via the API:
-
-```bash
-curl https://api.sericin.io/v1/pipelines/pipe_xyz789/runs/run_abc123/steps \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
+Access step detail in the dashboard by opening a run in **Orchestration > Runs** and selecting the **Steps** tab.
 
 ## Alerts
 

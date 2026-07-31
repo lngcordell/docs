@@ -1,7 +1,7 @@
 ---
-title: "Agent Roles and Permission Scopes"
-sidebarTitle: "Roles"
-description: "Understand Sericin's built-in agent roles — reader, executor, coordinator, and admin — and how to assign the right role to each agent."
+title: "Sericin Agent Roles: Scopes, Limits, and Assignment"
+sidebarTitle: "Agent Roles"
+description: "Understand Sericin's built-in agent roles — reader, executor, coordinator, and admin — and how to assign or update the right role for each agent."
 ---
 
 Roles are the foundation of Sericin's least-privilege model. Every agent must be assigned one of four built-in roles at registration time. The role defines the broadest set of actions the agent can ever take — no agent can exceed the boundaries of its role, regardless of what policies are attached. This means that even if a policy misconfiguration occurs, the role acts as a hard ceiling on the agent's authority.
@@ -15,9 +15,20 @@ Roles are the foundation of Sericin's least-privilege model. Every agent must be
 | `coordinator` | Can spawn, direct, and terminate other agents in addition to executor capabilities. | Orchestration agents, multi-agent supervisors, workflow managers. |
 | `admin` | Full access to all platform capabilities. Use sparingly. | Trusted system agents that require broad authority across multiple domains. |
 
-## Assigning a role
+## Assigning a role at registration
 
-You set the `role` field when you register an agent. See [Creating Agents](/agents/creating-agents) for the full registration flow. To update a role on an existing agent, send a `PATCH` request to `/v1/agents/{id}`:
+You set the `role` field when you register an agent via `POST /agents`. See [Creating Agents](/agents/creating-agents) for the complete registration flow.
+
+```bash
+curl -X POST https://api.sericin.io/v1/agents \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "audit-scraper", "role": "reader", "description": "Read-only monitoring agent for compliance reporting"}'
+```
+
+## Updating a role on an existing agent
+
+To change the role on an already-registered agent, send a `PATCH` request to `https://api.sericin.io/v1/agents/{id}` with the new `role` value:
 
 ```bash
 curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
@@ -26,7 +37,24 @@ curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
   -d '{"role": "coordinator"}'
 ```
 
-Sericin responds with the updated agent object, reflecting the new role immediately. Any active policy evaluations in progress are completed under the previous role before the change takes effect.
+Sericin responds with the full updated agent object reflecting the new role:
+
+```json
+{
+  "id": "agt_01j9kxmr4e2v8pqn5c7wd3bt6f",
+  "name": "invoice-processor",
+  "role": "coordinator",
+  "description": "Processes incoming invoices and routes for approval",
+  "status": "active",
+  "tags": ["finance", "production"],
+  "policy_ids": ["pol_02k1lyns5f3w9rqo6d8xe4cu7g"],
+  "created_at": "2024-11-14T09:32:10Z"
+}
+```
+
+<Note>
+  Any policy evaluations already in progress at the time of the role change are completed under the previous role. The new role takes effect for all subsequent evaluations once the `PATCH` request succeeds.
+</Note>
 
 ## Role vs. policy
 
@@ -36,7 +64,7 @@ A role and a policy serve different purposes and operate at different levels of 
 
 **Policy** is a fine-grained runtime control applied on top of the role. Policies answer questions like: *how many requests per minute can this executor make?*, *does this action require a human approval step?*, or *is this executor restricted to a specific set of topics?* Policies narrow and shape behavior within the role's ceiling — they never expand it.
 
-Think of the role as the outer wall and policies as the internal layout. You design the building (role) first, then configure the rooms (policies).
+Think of the role as the outer boundary and policies as the fine-grained controls within it. You choose the right role first, then use policies to tune the agent's runtime behavior.
 
 <Warning>
   The `admin` role grants unrestricted platform access and should be reserved exclusively for trusted system agents with a clear operational requirement. Avoid assigning `admin` to agents involved in user-facing workflows or third-party integrations. Audit all admin agents regularly.

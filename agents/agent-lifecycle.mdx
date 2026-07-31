@@ -1,10 +1,10 @@
 ---
 title: "Agent Lifecycle: Active, Paused, and Decommissioned"
 sidebarTitle: "Lifecycle"
-description: "Learn how to manage an agent's lifecycle in Sericin, including pausing, reactivating, and safely decommissioning agents you no longer need."
+description: "Learn how to manage an agent's lifecycle in Sericin, including pausing, reactivating, decommissioning, and permanently deleting agents you no longer need."
 ---
 
-Every agent in Sericin moves through a defined lifecycle from the moment it is registered. Understanding these states — and the transitions between them — lets you safely manage agents during maintenance, respond to incidents, and retire agents while preserving the audit records your organization depends on. All lifecycle transitions are performed through a single `PATCH` request to the agent's status field.
+Every agent in Sericin moves through a defined lifecycle from the moment it is registered. Understanding these states — and the transitions between them — lets you safely manage agents during maintenance, respond to incidents, and retire agents while preserving the audit records your organization depends on. All lifecycle transitions are performed through a `PATCH` request to the agent's `status` field.
 
 ## Lifecycle states
 
@@ -27,6 +27,21 @@ curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
   -d '{"status": "paused"}'
 ```
 
+The response confirms the updated state:
+
+```json
+{
+  "id": "agt_01j9kxmr4e2v8pqn5c7wd3bt6f",
+  "name": "invoice-processor",
+  "role": "executor",
+  "description": "Processes incoming invoices and routes for approval",
+  "status": "paused",
+  "tags": ["finance", "production"],
+  "policy_ids": ["pol_02k1lyns5f3w9rqo6d8xe4cu7g"],
+  "created_at": "2024-11-14T09:32:10Z"
+}
+```
+
 ### Reactivating an agent
 
 To bring a paused agent back into service, set its status back to `active`:
@@ -38,11 +53,24 @@ curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
   -d '{"status": "active"}'
 ```
 
-The agent resumes normal policy evaluation immediately after the request succeeds.
+The agent resumes normal policy evaluation immediately after the request succeeds:
+
+```json
+{
+  "id": "agt_01j9kxmr4e2v8pqn5c7wd3bt6f",
+  "name": "invoice-processor",
+  "role": "executor",
+  "description": "Processes incoming invoices and routes for approval",
+  "status": "active",
+  "tags": ["finance", "production"],
+  "policy_ids": ["pol_02k1lyns5f3w9rqo6d8xe4cu7g"],
+  "created_at": "2024-11-14T09:32:10Z"
+}
+```
 
 ### Decommissioning an agent
 
-To permanently retire an agent, set its status to `decommissioned`:
+To permanently retire an agent while retaining its audit record, set its status to `decommissioned`:
 
 ```bash
 curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
@@ -51,9 +79,47 @@ curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
   -d '{"status": "decommissioned"}'
 ```
 
+```json
+{
+  "id": "agt_01j9kxmr4e2v8pqn5c7wd3bt6f",
+  "name": "invoice-processor",
+  "role": "executor",
+  "description": "Processes incoming invoices and routes for approval",
+  "status": "decommissioned",
+  "tags": ["finance", "production"],
+  "policy_ids": ["pol_02k1lyns5f3w9rqo6d8xe4cu7g"],
+  "created_at": "2024-11-14T09:32:10Z"
+}
+```
+
 <Warning>
   Decommissioning is irreversible. Once an agent's status is set to `decommissioned`, it cannot be reactivated or modified. If you are unsure whether you will need the agent again, pause it instead.
 </Warning>
+
+### Deleting an agent
+
+If you want to permanently remove an agent and all of its configuration — rather than preserve its record — send a `DELETE` request. This is irreversible and removes the agent's action history.
+
+```bash
+curl -X DELETE https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+A successful deletion returns `204 No Content` with an empty response body.
+
+<Warning>
+  Deleting an agent permanently removes its audit history and cannot be undone. Prefer decommissioning to preserve the agent's record for compliance and incident review.
+</Warning>
+
+## Status field reference
+
+<ParamField body="status" type="string" required>
+  The target lifecycle state for the agent. Accepted values:
+
+  - `active` — Resumes or maintains normal policy evaluation.
+  - `paused` — Suspends the agent; all policy evaluations return `DENIED`.
+  - `decommissioned` — Permanently retires the agent. This transition is irreversible.
+</ParamField>
 
 ## Best practices
 

@@ -1,5 +1,5 @@
 ---
-title: "Trigger Pipelines with Events and Schedules"
+title: "Trigger Sericin Pipelines with Events and Schedules"
 sidebarTitle: "Triggers"
 description: "Configure event-driven webhooks, scheduled cron triggers, and manual triggers to start Sericin pipelines automatically or on demand."
 ---
@@ -23,7 +23,7 @@ Every pipeline with a webhook trigger has a unique trigger URL that Sericin gene
 To fire the pipeline, send an HTTP POST to that URL with your event payload in the request body:
 
 ```bash
-curl -X POST https://hooks.sericin.io/trigger/pipe_xyz789 \
+curl -X POST https://api.sericin.io/v1/pipelines/pipe_xyz789/webhook \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

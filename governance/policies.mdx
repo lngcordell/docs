@@ -24,7 +24,8 @@ Below is an example policy that requires human approval before an agent can subm
     { "field": "action.amount", "operator": "gt", "value": 10000 }
   ],
   "effect": "REQUIRE_APPROVAL",
-  "approver_group": "finance-managers"
+  "approver_group": "finance-managers",
+  "timeout_hours": 24
 }
 ```
 
@@ -36,6 +37,7 @@ Below is an example policy that requires human approval before an agent can subm
 | `conditions` | array | One or more condition objects. All conditions must match for the effect to apply. Each condition has a `field` (dot-notation path into the action payload), an `operator` (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`), and a `value`. |
 | `effect` | string | The outcome when all conditions match. One of `ALLOW`, `DENY`, or `REQUIRE_APPROVAL`. |
 | `approver_group` | string | The name of the approver group to notify when `effect` is `REQUIRE_APPROVAL`. Omit this field for `ALLOW` or `DENY` policies. |
+| `timeout_hours` | number | How long (in hours) an approval request may remain open before it is automatically rejected. Omit to wait indefinitely. Only applies when `effect` is `REQUIRE_APPROVAL`. |
 
 ## Creating a policy
 
@@ -53,7 +55,8 @@ curl -X POST https://api.sericin.io/v1/policies \
       { "field": "action.amount", "operator": "gt", "value": 10000 }
     ],
     "effect": "REQUIRE_APPROVAL",
-    "approver_group": "finance-managers"
+    "approver_group": "finance-managers",
+    "timeout_hours": 24
   }'
 ```
 
@@ -70,32 +73,53 @@ A successful response returns the created policy object, including its assigned 
   ],
   "effect": "REQUIRE_APPROVAL",
   "approver_group": "finance-managers",
+  "timeout_hours": 24,
   "created_at": "2025-01-15T10:32:00Z",
   "updated_at": "2025-01-15T10:32:00Z"
 }
 ```
 
-## Assigning policies to agents
+## Updating a policy
 
-You can assign one or more policies to an agent by patching the agent resource with an array of policy IDs:
+To change a policy's name, description, conditions, effect, approver group, or timeout, send a `PATCH` request to `/policies/{id}`. You only need to include the fields you want to change:
 
 ```bash
-curl -X PATCH https://api.sericin.io/v1/agents/agt_xyz789 \
+curl -X PATCH https://api.sericin.io/v1/policies/pol_abc123 \
   -H "Authorization: Bearer $SERICIN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "policy_ids": ["pol_abc123", "pol_def456"]
+    "timeout_hours": 48,
+    "description": "Requires human approval for invoices over $10,000 (48-hour window)"
   }'
 ```
 
-Alternatively, to add a single policy to an agent without replacing the full list, use the dedicated assignment endpoint:
+A successful response returns the full updated policy object. Changes take effect immediately — the next action the agent attempts will be evaluated against the updated policy.
+
+## Deleting a policy
+
+To permanently remove a policy, send a `DELETE` request to `/policies/{id}`:
+
+```bash
+curl -X DELETE https://api.sericin.io/v1/policies/pol_abc123 \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+A successful deletion returns `204 No Content` with an empty body. Once deleted, a policy is immediately unassigned from all agents. Any approval requests that were pending under the deleted policy are automatically rejected.
+
+<Warning>
+  Deleting a policy is irreversible. If you want to stop a policy from applying without losing its configuration, consider updating its `effect` to `ALLOW` rather than deleting it outright.
+</Warning>
+
+## Assigning a policy to an agent
+
+Use the dedicated assignment endpoint to attach a policy to a specific agent:
 
 ```bash
 curl -X POST https://api.sericin.io/v1/policies/pol_abc123/agents/agt_xyz789 \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
 
-Both approaches take effect immediately — the next action the agent attempts will be evaluated against the updated policy set.
+The assignment takes effect immediately — the next action the agent attempts will be evaluated against the newly assigned policy set.
 
 ## Policy evaluation order
 

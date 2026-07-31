@@ -1,7 +1,7 @@
 ---
-title: "Sericin REST API Reference Overview"
+title: "Sericin REST API Overview — Endpoints and Conventions"
 sidebarTitle: "Overview"
-description: "Explore the Sericin REST API: base URL, request format, response format, rate limits, error codes, and versioning conventions."
+description: "Explore the Sericin REST API reference: base URL, request and response format, authentication, rate limits, error codes, and pagination."
 ---
 
 The Sericin REST API gives you programmatic control over every resource in your governance platform — register and manage agents, define and assign policies, act on approval requests, and query audit logs, all from your own tooling and automation pipelines.
@@ -10,7 +10,7 @@ The Sericin REST API gives you programmatic control over every resource in your 
 
 All API requests are made to the following base URL:
 
-```
+```text
 https://api.sericin.io/v1
 ```
 
@@ -26,7 +26,7 @@ Every endpoint path in this reference is relative to this base URL.
 
 Sericin authenticates requests using API keys passed as a Bearer token in the `Authorization` header:
 
-```
+```text
 Authorization: Bearer <your_api_key>
 ```
 

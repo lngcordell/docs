@@ -70,15 +70,11 @@ curl -X GET "https://api.sericin.io/v1/audit-logs?agent_id=agt_xyz789&from=2025-
 }
 ```
 
-## Log retention
-
-By default, Sericin retains audit logs for **90 days**. After that window, entries are permanently deleted. If your compliance requirements mandate a longer retention period — for example, SOC 2, HIPAA, or financial regulations that require multi-year records — contact [support@sericin.io](mailto:support@sericin.io) to discuss extended retention options.
-
 ## Exporting logs
 
-**CSV export:**
+### CSV export
 
-To download audit log data as a CSV file, send the same `GET /audit-logs` request with an `Accept: text/csv` header. Sericin returns the filtered result set as a downloadable CSV, with one log entry per row.
+To download audit log data as a CSV file, send the same `GET /audit-logs` request with an `Accept: text/csv` header. Sericin returns the filtered result set as a downloadable CSV, with one log entry per row. All query parameters (`agent_id`, `from`, `to`, `action_type`, `outcome`) work identically to the JSON endpoint.
 
 ```bash
 curl -X GET "https://api.sericin.io/v1/audit-logs?from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z" \
@@ -87,9 +83,13 @@ curl -X GET "https://api.sericin.io/v1/audit-logs?from=2025-01-01T00:00:00Z&to=2
   -o audit-logs-january-2025.csv
 ```
 
-**Real-time webhook streaming:**
+### Real-time webhook streaming
 
 If you need to ingest audit events into a SIEM or log aggregation platform in real time, you can configure a webhook to receive a structured event payload for every log entry as it is created. See the [Webhooks integration guide](/integrations/webhooks) for setup instructions.
+
+## Log retention
+
+By default, Sericin retains audit logs for **90 days**. After that window, entries are permanently deleted. If your compliance requirements mandate a longer retention period — for example, SOC 2, HIPAA, or financial regulations that require multi-year records — contact [support@sericin.io](mailto:support@sericin.io) to discuss extended retention options.
 
 <Note>
   Audit logs are immutable. No user — including organization admins — can edit, redact, or delete log entries through the API or the dashboard. This is by design: the integrity of the audit trail is what makes it trustworthy for compliance and investigation purposes.

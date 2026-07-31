@@ -1,31 +1,94 @@
 ---
-title: "Audit Logs API — Query the Activity Record"
+title: "Audit Logs API — Query Agent Activity and Export CSV"
 sidebarTitle: "Audit Logs"
-description: "GET /audit-logs — query the immutable audit log to retrieve agent actions, policy decisions, and approval outcomes with filtering and export."
+description: "Query Sericin's immutable audit log by agent, time range, action type, or outcome, and export filtered results as CSV for compliance."
 ---
 
 Every action taken by an agent, every policy decision Sericin makes, and every approval outcome is written to the audit log immediately and cannot be modified or deleted. The Audit Logs API lets you query this record programmatically — filter by agent, time range, action type, or outcome — and export bulk data as CSV for compliance reviews or SIEM ingestion.
 
-## Endpoints
+## List Audit Log Entries
 
-### List Audit Log Entries
+Query audit log entries with optional filters. All filter parameters can be combined freely.
 
-Query audit log entries with optional filters. All filter parameters can be combined.
+**Method:** `GET`
+**URL:** `https://api.sericin.io/v1/audit-logs`
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl "https://api.sericin.io/v1/audit-logs?agent_id=agt_01hx9k2m3nqr4p5s6t7u8v9w&from=2024-06-01T00:00:00Z&to=2024-06-30T23:59:59Z&outcome=denied" \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
 
-**Query parameters:**
+```python Python
+import requests
+import os
 
-| Parameter | Type | Description |
-|---|---|---|
-| `agent_id` | string | Filter to entries for a specific agent |
-| `from` | string (ISO 8601) | Return entries at or after this timestamp |
-| `to` | string (ISO 8601) | Return entries at or before this timestamp |
-| `action_type` | string | Filter by the type of action attempted |
-| `outcome` | string | Filter by outcome: `succeeded`, `failed`, `denied`, `approved`, or `rejected` |
+response = requests.get(
+    "https://api.sericin.io/v1/audit-logs",
+    headers={"Authorization": f"Bearer {os.environ['SERICIN_API_KEY']}"},
+    params={
+        "agent_id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+        "from": "2024-06-01T00:00:00Z",
+        "to": "2024-06-30T23:59:59Z",
+        "outcome": "denied",
+    },
+)
+
+print(response.json())
+```
+
+```javascript Node.js
+const params = new URLSearchParams({
+  agent_id: "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+  from: "2024-06-01T00:00:00Z",
+  to: "2024-06-30T23:59:59Z",
+  outcome: "denied",
+});
+
+const response = await fetch(`https://api.sericin.io/v1/audit-logs?${params}`, {
+  headers: {
+    Authorization: `Bearer ${process.env.SERICIN_API_KEY}`,
+  },
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField query="agent_id" type="string">
+  Filter to entries for a specific agent. Pass the agent's `agt_`-prefixed ID.
+</ParamField>
+
+<ParamField query="from" type="string">
+  Return entries at or after this ISO 8601 UTC timestamp (e.g., `2024-06-01T00:00:00Z`).
+</ParamField>
+
+<ParamField query="to" type="string">
+  Return entries at or before this ISO 8601 UTC timestamp (e.g., `2024-06-30T23:59:59Z`).
+</ParamField>
+
+<ParamField query="action_type" type="string">
+  Filter by the type of action attempted (e.g., `transfer_funds`, `read_document`, `send_email`).
+</ParamField>
+
+<ParamField query="outcome" type="string">
+  Filter by final outcome. Accepted values: `succeeded`, `failed`, `denied`, `approved`, or `rejected`.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor returned as `next_cursor` in the previous response. Omit to start from the first page.
+</ParamField>
+
+<ParamField query="per_page" type="integer">
+  Number of results to return per page. Defaults to `20`. Maximum is `100`.
+</ParamField>
+
+### Response
 
 ```json
 {
@@ -53,22 +116,26 @@ curl "https://api.sericin.io/v1/audit-logs?agent_id=agt_01hx9k2m3nqr4p5s6t7u8v9w
 
 ---
 
-### Get a Single Log Entry
+## Get a Single Log Entry
 
-Retrieve the full record for one audit log entry by its ID.
+Retrieve the full record for one audit log entry by its ID. Returns `200 OK` with the full log entry object.
+
+**Method:** `GET`
+**URL:** `https://api.sericin.io/v1/audit-logs/{id}`
 
 ```bash
 curl https://api.sericin.io/v1/audit-logs/log_1a2b3c4d5e6f7g8h \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
 
-Returns `200 OK` with the full log entry object.
-
 ---
 
-### Export as CSV
+## Export as CSV
 
 To download audit log entries in CSV format — for example, to import into a SIEM or spreadsheet — pass an `Accept: text/csv` header. All the same query parameters apply.
+
+**Method:** `GET`
+**URL:** `https://api.sericin.io/v1/audit-logs`
 
 ```bash
 curl "https://api.sericin.io/v1/audit-logs?from=2024-06-01T00:00:00Z&to=2024-06-30T23:59:59Z" \
@@ -76,6 +143,10 @@ curl "https://api.sericin.io/v1/audit-logs?from=2024-06-01T00:00:00Z&to=2024-06-
   -H "Accept: text/csv" \
   -o audit-june-2024.csv
 ```
+
+<Note>
+  The CSV export streams the full result set matching your filters in a single response — no pagination is required. Use this endpoint for bulk compliance exports rather than paginating through the JSON API.
+</Note>
 
 ---
 

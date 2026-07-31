@@ -1,7 +1,7 @@
 ---
-title: "Managing AI Agents in Sericin"
+title: "Sericin Agents: Registration, Roles, and Governance"
 sidebarTitle: "Overview"
-description: "Learn how Sericin agents work: what they are, how they are registered, and how roles and permissions shape their behavior."
+description: "Learn how Sericin agents work: what they are, how to register and list them, and how roles and policies shape governed behavior across your AI systems."
 ---
 
 Agents are the primary actors in Sericin. Every automated process, AI worker, or scripted service that needs to take governed actions must be registered as an agent. Once registered, Sericin tracks the agent's identity, enforces its assigned policies, and records every action it attempts — giving you a complete audit trail and fine-grained control over what each agent can do.
@@ -21,8 +21,61 @@ Every agent in Sericin carries the following attributes:
 | `role` | string | The agent's capability category (`reader`, `executor`, `coordinator`, or `admin`). |
 | `description` | string | Optional free-text description of the agent's purpose. |
 | `status` | string | Current lifecycle state: `active`, `paused`, or `decommissioned`. |
-| `created_at` | string | ISO 8601 timestamp of when the agent was registered. |
+| `tags` | array | Optional list of string labels for grouping and filtering agents. |
 | `policy_ids` | array | List of policy IDs attached to this agent. |
+| `created_at` | string | ISO 8601 timestamp of when the agent was registered. |
+
+## Listing agents
+
+Use `GET /agents` to retrieve all agents in your account. You can filter the results by status, role, or tags, and page through large sets using cursor-based pagination.
+
+```bash
+curl https://api.sericin.io/v1/agents?status=active&role=executor&per_page=20 \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+A successful response returns a paginated list of agent objects:
+
+```json
+{
+  "data": [
+    {
+      "id": "agt_01j9kxmr4e2v8pqn5c7wd3bt6f",
+      "name": "invoice-processor",
+      "role": "executor",
+      "description": "Processes incoming invoices and routes for approval",
+      "status": "active",
+      "tags": ["finance", "production"],
+      "policy_ids": ["pol_02k1lyns5f3w9rqo6d8xe4cu7g"],
+      "created_at": "2024-11-14T09:32:10Z"
+    }
+  ],
+  "next_cursor": "cur_eyJpZCI6ImFndF8wMWo5a3htcjRlMnY4cHFuNWM3d2QzYnQ2ZiJ9",
+  "per_page": 20
+}
+```
+
+### Query parameters
+
+<ParamField query="status" type="string">
+  Filter by lifecycle state. Accepted values: `active`, `paused`, `decommissioned`.
+</ParamField>
+
+<ParamField query="role" type="string">
+  Filter by role. Accepted values: `reader`, `executor`, `coordinator`, `admin`.
+</ParamField>
+
+<ParamField query="tags" type="string">
+  Filter by one or more tags. Separate multiple values with commas: `tags=finance,production`.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor returned in the previous response as `next_cursor`. Omit to start from the beginning.
+</ParamField>
+
+<ParamField query="per_page" type="integer">
+  Number of agents to return per page. Defaults to `20`. Maximum is `100`.
+</ParamField>
 
 ## Agent states
 
@@ -42,5 +95,8 @@ Sericin uses three lifecycle states to reflect whether an agent is operational, 
   </Card>
   <Card title="Agent Roles" icon="shield" href="/agents/agent-roles">
     Understand the built-in roles and assign the right one to each agent.
+  </Card>
+  <Card title="Agent Lifecycle" icon="arrows-rotate" href="/agents/agent-lifecycle">
+    Pause, reactivate, and decommission agents as your needs evolve.
   </Card>
 </CardGroup>

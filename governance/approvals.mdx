@@ -10,12 +10,26 @@ When a policy has an effect of `REQUIRE_APPROVAL`, Sericin automatically creates
 
 The approval workflow follows a straightforward sequence:
 
-1. **Policy triggers** — the policy engine evaluates the agent's action and returns `REQUIRE_APPROVAL`.
-2. **Approval request created** — Sericin creates an approval request record, capturing the full action context (agent ID, action type, payload, and the policy that triggered the request).
-3. **Approvers notified** — every member of the designated approver group receives a notification via email and/or webhook, depending on your notification settings.
-4. **Approver reviews context** — the approver opens the request in the dashboard (or via API) and sees the complete action payload so they can make an informed decision.
-5. **Approves or rejects** — the approver submits their decision, optionally attaching a comment.
-6. **Agent action proceeds or is cancelled** — if approved, Sericin releases the paused action and the agent continues; if rejected, the action is cancelled and the agent receives an error response it can handle programmatically.
+<Steps>
+  <Step title="Policy triggers">
+    The policy engine evaluates the agent's action and returns `REQUIRE_APPROVAL`.
+  </Step>
+  <Step title="Approval request created">
+    Sericin creates an approval request record, capturing the full action context: agent ID, action type, payload, and the policy that triggered the request.
+  </Step>
+  <Step title="Approvers notified">
+    Every member of the designated approver group receives a notification via email and/or webhook, depending on your notification settings.
+  </Step>
+  <Step title="Approver reviews context">
+    The approver opens the request in the dashboard (or via API) and sees the complete action payload so they can make an informed decision.
+  </Step>
+  <Step title="Approves or rejects">
+    The approver submits their decision. A comment is optional when approving and required when rejecting, so there is always a recorded reason when an action is blocked.
+  </Step>
+  <Step title="Agent action proceeds or is cancelled">
+    If approved, Sericin releases the paused action and the agent continues. If rejected, the action is cancelled and the agent receives an error response it can handle programmatically.
+  </Step>
+</Steps>
 
 ## Approver groups
 
@@ -23,11 +37,20 @@ Approver groups are named collections of Sericin users who have the authority to
 
 **Create a group in the dashboard:**
 
-1. Navigate to **Settings > Approver Groups**.
-2. Click **New Group**.
-3. Enter a name (this becomes the `approver_group` value you reference in policies).
-4. Add one or more Sericin users to the group.
-5. Set the **quorum** — the minimum number of approvers required before a request is considered resolved. For example, a quorum of `1` means any single member can approve; a quorum of `2` requires two independent approvals before the action proceeds.
+<Steps>
+  <Step title="Open Approver Groups">
+    Navigate to **Settings > Approver Groups** and click **New Group**.
+  </Step>
+  <Step title="Name the group">
+    Enter a name for the group. This value becomes the `approver_group` identifier you reference in your policies.
+  </Step>
+  <Step title="Add members">
+    Add one or more Sericin users to the group.
+  </Step>
+  <Step title="Set the quorum">
+    Set the **quorum** — the minimum number of approvers required before a request is considered resolved. A quorum of `1` means any single member can approve; a quorum of `2` requires two independent approvals before the action proceeds.
+  </Step>
+</Steps>
 
 You can update group membership and quorum at any time; changes apply to all new approval requests immediately.
 
@@ -69,6 +92,8 @@ curl -X GET "https://api.sericin.io/v1/approvals?status=pending" \
 }
 ```
 
+The `status` query parameter accepts `pending`, `approved`, or `rejected`. Omit it to return all requests regardless of status.
+
 **Approve a request:**
 
 ```bash
@@ -77,6 +102,8 @@ curl -X POST https://api.sericin.io/v1/approvals/apr_11223344/approve \
   -H "Content-Type: application/json" \
   -d '{"comment": "Verified against Q1 budget. Approved."}'
 ```
+
+The `comment` field is optional when approving, but including one provides useful context in the audit log for future reviews.
 
 **Reject a request:**
 
@@ -87,7 +114,9 @@ curl -X POST https://api.sericin.io/v1/approvals/apr_11223344/reject \
   -d '{"comment": "Amount exceeds departmental budget ceiling. Please resubmit after budget review."}'
 ```
 
-The `comment` field is optional but strongly recommended — it is captured in the audit log and provides useful context for future reviews.
+<Note>
+  The `comment` field is **required** when rejecting an approval request. This ensures there is always a recorded reason when an agent action is blocked, which is critical for audit trails and for helping agent owners understand why their workflow was interrupted.
+</Note>
 
 ## Approval timeouts
 

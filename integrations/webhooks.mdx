@@ -1,5 +1,5 @@
 ---
-title: "Receive Sericin Events with Webhooks"
+title: "Receive and Verify Real-Time Sericin Events via Webhooks"
 sidebarTitle: "Webhooks"
 description: "Configure Sericin webhooks to receive real-time notifications for agent actions, policy decisions, approval requests, and pipeline events."
 ---
@@ -16,7 +16,7 @@ Subscribe to one or more of the following events when creating a webhook:
 | `policy.denied` | A policy evaluation returned `DENY` |
 | `approval.requested` | A new approval request was created |
 | `approval.resolved` | An approval was approved or rejected |
-| `pipeline.completed` | A pipeline run finished |
+| `pipeline.completed` | A pipeline run finished successfully |
 | `pipeline.failed` | A pipeline run failed |
 
 ## Creating a webhook
@@ -108,6 +108,7 @@ if (!verifySignature(rawBody, signature, secret)) {
 ```python Python
 import hmac
 import hashlib
+import os
 
 def verify_signature(raw_body: bytes, signature: str, secret: str) -> bool:
     expected = hmac.new(

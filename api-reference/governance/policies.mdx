@@ -1,21 +1,49 @@
 ---
-title: "Policies API — Create and Manage Rules"
+title: "Governance Policies — Create, Manage, and Assign Rules"
 sidebarTitle: "Policies"
-description: "REST API endpoints for creating, listing, updating, and deleting governance policies that control agent behavior in Sericin."
+description: "Create, list, update, delete, and assign governance policies that control what actions agents are allowed, denied, or must seek approval for."
 ---
 
 Policies are the core governance primitive in Sericin. Each policy defines a set of conditions and an effect — `ALLOW`, `DENY`, or `REQUIRE_APPROVAL` — that Sericin evaluates whenever an agent attempts an action. Use the Policies API to create, inspect, update, delete, and assign policies entirely through code.
 
-## Endpoints
+## List Policies
 
-### List Policies
+Retrieve all policies in your organization. Returns a paginated list ordered by creation date, most recent first.
 
-Retrieve all policies in your organization.
+**Method:** `GET`
+**URL:** `https://api.sericin.io/v1/policies`
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl https://api.sericin.io/v1/policies \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
+
+```python Python
+import requests
+import os
+
+response = requests.get(
+    "https://api.sericin.io/v1/policies",
+    headers={"Authorization": f"Bearer {os.environ['SERICIN_API_KEY']}"},
+)
+
+print(response.json())
+```
+
+```javascript Node.js
+const response = await fetch("https://api.sericin.io/v1/policies", {
+  headers: {
+    Authorization: `Bearer ${process.env.SERICIN_API_KEY}`,
+  },
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
 
 ```json
 {
@@ -39,11 +67,16 @@ curl https://api.sericin.io/v1/policies \
 
 ---
 
-### Create a Policy
+## Create a Policy
 
-Register a new governance policy.
+Register a new governance policy. Returns `201 Created` with the full policy object.
 
-```bash
+**Method:** `POST`
+**URL:** `https://api.sericin.io/v1/policies`
+
+<CodeGroup>
+
+```bash cURL
 curl -X POST https://api.sericin.io/v1/policies \
   -H "Authorization: Bearer $SERICIN_API_KEY" \
   -H "Content-Type: application/json" \
@@ -57,7 +90,83 @@ curl -X POST https://api.sericin.io/v1/policies \
   }'
 ```
 
-A successful request returns `201 Created` with the full policy object.
+```python Python
+import requests
+import os
+
+response = requests.post(
+    "https://api.sericin.io/v1/policies",
+    headers={
+        "Authorization": f"Bearer {os.environ['SERICIN_API_KEY']}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "name": "deny-external-transfers",
+        "description": "Blocks all fund transfers to external accounts.",
+        "conditions": [
+            {"field": "action.type", "operator": "eq", "value": "external_transfer"}
+        ],
+        "effect": "DENY",
+    },
+)
+
+print(response.json())
+```
+
+```javascript Node.js
+const response = await fetch("https://api.sericin.io/v1/policies", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.SERICIN_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "deny-external-transfers",
+    description: "Blocks all fund transfers to external accounts.",
+    conditions: [
+      { field: "action.type", operator: "eq", value: "external_transfer" },
+    ],
+    effect: "DENY",
+  }),
+});
+
+const policy = await response.json();
+console.log(policy);
+```
+
+</CodeGroup>
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  A unique, human-readable name for the policy within your organization (e.g., `deny-external-transfers`).
+</ParamField>
+
+<ParamField body="description" type="string">
+  A plain-language explanation of what the policy enforces. Displayed in the dashboard and audit logs.
+</ParamField>
+
+<ParamField body="conditions" type="array" required>
+  An array of condition objects. All conditions must be satisfied for the policy to trigger (AND logic). Each condition object contains:
+
+  - `field` (string) — the attribute to evaluate (e.g., `action.type`, `action.amount`)
+  - `operator` (string) — the comparison operator: `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, or `contains`
+  - `value` (string | number) — the value to compare against
+</ParamField>
+
+<ParamField body="effect" type="string" required>
+  The action Sericin takes when all conditions are met. One of `ALLOW`, `DENY`, or `REQUIRE_APPROVAL`.
+</ParamField>
+
+<ParamField body="approver_group" type="string">
+  Required when `effect` is `REQUIRE_APPROVAL`. The identifier of the team or role group responsible for reviewing triggered requests.
+</ParamField>
+
+<ParamField body="timeout_hours" type="integer">
+  Applicable when `effect` is `REQUIRE_APPROVAL`. The number of hours before an unanswered approval request automatically expires. Defaults to `24`.
+</ParamField>
+
+### Response
 
 ```json
 {
@@ -76,22 +185,26 @@ A successful request returns `201 Created` with the full policy object.
 
 ---
 
-### Get a Policy
+## Get a Policy
 
-Retrieve a single policy by ID.
+Retrieve a single policy by ID. Returns `200 OK` with the full policy object.
+
+**Method:** `GET`
+**URL:** `https://api.sericin.io/v1/policies/{id}`
 
 ```bash
 curl https://api.sericin.io/v1/policies/pol_abc123 \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
 
-Returns `200 OK` with the policy object.
-
 ---
 
-### Update a Policy
+## Update a Policy
 
-Partially update an existing policy. Only the fields you include are changed.
+Partially update an existing policy. Only the fields you include are changed. Returns `200 OK` with the updated policy object.
+
+**Method:** `PATCH`
+**URL:** `https://api.sericin.io/v1/policies/{id}`
 
 ```bash
 curl -X PATCH https://api.sericin.io/v1/policies/pol_abc123 \
@@ -102,33 +215,37 @@ curl -X PATCH https://api.sericin.io/v1/policies/pol_abc123 \
   }'
 ```
 
-Returns `200 OK` with the updated policy object.
-
 ---
 
-### Delete a Policy
+## Delete a Policy
 
-Permanently delete a policy. Agents previously assigned this policy will no longer have it applied.
+Permanently delete a policy. Agents previously assigned this policy will no longer have it applied. Returns `204 No Content` on success.
+
+**Method:** `DELETE`
+**URL:** `https://api.sericin.io/v1/policies/{id}`
 
 ```bash
 curl -X DELETE https://api.sericin.io/v1/policies/pol_abc123 \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
 
-Returns `204 No Content` on success.
-
 ---
 
-### Assign a Policy to an Agent
+## Assign a Policy to an Agent
 
-Associate a policy with a specific agent. The policy takes effect immediately.
+Associate a policy with a specific agent. The policy takes effect immediately. Returns `200 OK` on success.
+
+**Method:** `POST`
+**URL:** `https://api.sericin.io/v1/policies/{id}/agents/{agent_id}`
 
 ```bash
 curl -X POST https://api.sericin.io/v1/policies/pol_abc123/agents/agt_01hx9k2m3nqr4p5s6t7u8v9w \
   -H "Authorization: Bearer $SERICIN_API_KEY"
 ```
 
-Returns `200 OK` on success.
+<Tip>
+  You can also assign policies in bulk when creating or updating an agent by supplying a `policy_ids` array in the [Create Agent](/api-reference/agents/create) or [Update Agent](/api-reference/agents/update) request body.
+</Tip>
 
 ---
 

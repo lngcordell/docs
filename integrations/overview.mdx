@@ -1,5 +1,5 @@
 ---
-title: "Integrations: Connect Sericin to Your Stack"
+title: "Integrations: Connect Sericin to Your Existing Stack"
 sidebarTitle: "Overview"
 description: "Learn how to integrate Sericin with your existing tools using webhooks for event streaming, SSO for identity, and the REST API for automation."
 ---
@@ -26,5 +26,5 @@ The following patterns cover the most frequent ways teams connect Sericin to the
 
 - **Stream audit events to your SIEM** — subscribe to events like `policy.denied` and `agent.action.completed` via webhook and forward them to Splunk, Datadog, or your preferred SIEM for centralized logging and alerting.
 - **Trigger pipelines from your CI/CD system** — call `POST /pipelines/{id}/run` from a GitHub Actions workflow or Jenkins pipeline to kick off governance-enforced agent tasks as part of your deployment process.
-- **Provision agents programmatically via the API** — use `POST /agents` and `POST /policies` to create and configure agents as part of your infrastructure-as-code setup, keeping your agent definitions version-controlled alongside the rest of your stack.
+- **Run pipelines on demand via the API** — use `POST /pipelines/{id}/run` to manually trigger any pipeline with a custom input payload, making it easy to integrate Sericin into scripts, runbooks, or internal tooling.
 - **Authenticate users through your corporate identity provider** — configure [SSO](/integrations/sso) so your team logs in to Sericin using the same credentials they use for every other internal tool, with role assignments driven by your existing IdP groups.
