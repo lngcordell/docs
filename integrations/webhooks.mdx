@@ -1,0 +1,138 @@
+---
+title: "Receive Sericin Events with Webhooks"
+sidebarTitle: "Webhooks"
+description: "Configure Sericin webhooks to receive real-time notifications for agent actions, policy decisions, approval requests, and pipeline events."
+---
+
+Sericin can push event notifications to any HTTPS endpoint you configure. Each time a subscribed event occurs — an agent action completes, a policy denies a request, an approval is raised — Sericin sends an HTTP POST to your endpoint with a signed JSON payload.
+
+## Supported events
+
+Subscribe to one or more of the following events when creating a webhook:
+
+| Event | Description |
+|-------|-------------|
+| `agent.action.completed` | An agent action finished (succeeded or failed) |
+| `policy.denied` | A policy evaluation returned `DENY` |
+| `approval.requested` | A new approval request was created |
+| `approval.resolved` | An approval was approved or rejected |
+| `pipeline.completed` | A pipeline run finished |
+| `pipeline.failed` | A pipeline run failed |
+
+## Creating a webhook
+
+### Dashboard
+
+Go to **Settings > Webhooks > Add Webhook**. Enter your endpoint URL, select the events you want to subscribe to, and click **Save**. Sericin immediately sends a test ping to verify the endpoint is reachable.
+
+### API
+
+Send a `POST` request to `/webhooks` with the endpoint URL and event list:
+
+```bash
+curl -X POST https://api.sericin.io/v1/webhooks \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://hooks.example.com/sericin-events",
+    "events": ["approval.requested", "policy.denied", "pipeline.failed"]
+  }'
+```
+
+A successful response returns the new webhook object:
+
+```json
+{
+  "id": "wh_def456",
+  "url": "https://hooks.example.com/sericin-events",
+  "events": ["approval.requested", "policy.denied", "pipeline.failed"],
+  "secret": "whsec_••••••••••••••••",
+  "created_at": "2025-01-15T11:00:00Z"
+}
+```
+
+Store the `secret` value — you'll need it to verify incoming payloads.
+
+## Webhook payload
+
+Every delivery is a `POST` request with a `Content-Type: application/json` body. Below is an example payload for the `approval.requested` event:
+
+```json
+{
+  "event": "approval.requested",
+  "timestamp": "2025-01-15T14:22:31Z",
+  "data": {
+    "approval_id": "apr_789xyz",
+    "agent_id": "agt_002",
+    "action": "invoice.submit",
+    "policy_id": "pol_financial_controls",
+    "approver_group": "finance-leads",
+    "context": {
+      "invoice_id": "inv_00123",
+      "amount": 4250.00,
+      "currency": "USD"
+    }
+  }
+}
+```
+
+## Verifying webhook signatures
+
+Every delivery includes a `Sericin-Signature` header containing an HMAC-SHA256 signature of the raw request body, computed using your webhook secret. Always verify this signature before processing a payload to ensure it originated from Sericin.
+
+<CodeGroup>
+
+```javascript Node.js
+const crypto = require('crypto');
+
+function verifySignature(rawBody, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+  const trusted = Buffer.from(`sha256=${expected}`, 'utf8');
+  const received = Buffer.from(signature, 'utf8');
+  return crypto.timingSafeEqual(trusted, received);
+}
+
+// In your request handler:
+const rawBody = req.rawBody; // unparsed request body string
+const signature = req.headers['sericin-signature'];
+const secret = process.env.SERICIN_WEBHOOK_SECRET;
+
+if (!verifySignature(rawBody, signature, secret)) {
+  return res.status(401).send('Invalid signature');
+}
+```
+
+```python Python
+import hmac
+import hashlib
+
+def verify_signature(raw_body: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode('utf-8'),
+        raw_body,
+        hashlib.sha256
+    ).hexdigest()
+    trusted = f"sha256={expected}"
+    return hmac.compare_digest(trusted, signature)
+
+# In your request handler:
+raw_body = request.get_data()  # unparsed bytes
+signature = request.headers.get('Sericin-Signature', '')
+secret = os.environ['SERICIN_WEBHOOK_SECRET']
+
+if not verify_signature(raw_body, signature, secret):
+    return Response('Invalid signature', status=401)
+```
+
+</CodeGroup>
+
+## Retries
+
+Sericin retries failed deliveries up to **5 times** using exponential backoff. A delivery is considered failed if your endpoint returns a non-2xx HTTP status code or does not respond within **10 seconds**. The retry schedule is approximately 5 s, 30 s, 5 min, 30 min, and 2 hours after the initial attempt. If all retries are exhausted, the delivery is marked as failed and you can inspect it in **Settings > Webhooks > [webhook] > Delivery Log**.
+
+<Warning>
+  Always verify the webhook signature before processing payloads. Skipping verification leaves your endpoint vulnerable to spoofed requests from unauthorized sources.
+</Warning>

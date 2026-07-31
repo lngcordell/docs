@@ -1,0 +1,42 @@
+---
+title: "DELETE /agents/{id} — Remove an Agent"
+sidebarTitle: "Delete Agent"
+description: "DELETE /agents/{id} — permanently removes an agent record. Prefer decommissioning over deletion to preserve audit history."
+---
+
+`DELETE /agents/{id}` permanently removes an agent from your organization. Unlike decommissioning, deletion also removes all associated audit log entries for that agent — there is no recovery path. This endpoint is intended for cleanup of test agents or agents created in error, not for retiring agents that have operated in production.
+
+## Request
+
+**Method:** `DELETE`  
+**URL:** `https://api.sericin.io/v1/agents/{id}`
+
+```bash
+curl -X DELETE https://api.sericin.io/v1/agents/agt_01hx9k2m3nqr4p5s6t7u8v9w \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique ID of the agent to delete. Agent IDs are prefixed with `agt_` (e.g., `agt_01hx9k2m3nqr4p5s6t7u8v9w`).
+</ParamField>
+
+## Response
+
+**Success:** `204 No Content` — the agent has been permanently deleted. The response body is empty.
+
+**Not found:** `404 Not Found` — no agent with the given ID exists in your organization.
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "Agent agt_01hx9k2m3nqr4p5s6t7u8v9w does not exist"
+  }
+}
+```
+
+<Warning>
+  Deleting an agent **permanently removes its entire audit history**. This action cannot be undone. In most cases, you should use `PATCH /agents/{id}` with `"status": "decommissioned"` instead — this retires the agent while preserving its full audit trail for compliance and review purposes.
+</Warning>

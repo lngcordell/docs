@@ -1,0 +1,85 @@
+---
+title: "Monitor Agent Pipelines and System Health"
+sidebarTitle: "Monitoring"
+description: "Track the status of running and completed pipeline executions, view per-step outcomes, and set up alerts for failures or policy violations."
+---
+
+Sericin gives you real-time visibility into every pipeline execution. You can track overall run status, drill into individual step outcomes, and configure alerts so your team is notified the moment something goes wrong.
+
+## Pipeline execution status
+
+Every pipeline run moves through a defined lifecycle. The possible statuses are:
+
+- **`pending`** — the run has been queued but execution has not started yet.
+- **`running`** — one or more steps are actively executing.
+- **`succeeded`** — all steps completed successfully and the pipeline reached `end`.
+- **`failed`** — a step encountered an error or a policy returned `DENY`, and no `on_failure` handler resolved it.
+- **`cancelled`** — the run was stopped manually before it completed.
+
+View recent executions in the dashboard under **Orchestration > Runs**. The list shows each run's status, total duration, and the triggering event.
+
+To retrieve runs via the API, use `GET /pipelines/{id}/runs`:
+
+```bash
+curl https://api.sericin.io/v1/pipelines/pipe_xyz789/runs \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+For the detail of a specific run, use `GET /pipelines/{id}/runs/{run_id}`:
+
+```bash
+curl https://api.sericin.io/v1/pipelines/pipe_xyz789/runs/run_abc123 \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "id": "run_abc123",
+  "pipeline_id": "pipe_xyz789",
+  "status": "succeeded",
+  "triggered_by": "webhook",
+  "started_at": "2025-01-15T02:00:05Z",
+  "finished_at": "2025-01-15T02:00:47Z",
+  "duration_ms": 42310
+}
+```
+
+## Step-level detail
+
+Each run record contains a breakdown of every step that executed. Step-level detail includes:
+
+- **Step name** — the label or index of the step in the pipeline definition
+- **Agent** — the agent ID that handled the step
+- **Action** — the action that was invoked
+- **Start time and duration** — when the step began and how long it took
+- **Policy result** — whether the governing policy returned `ALLOW` or `DENY`
+- **Outcome** — `succeeded`, `failed`, or `skipped`
+
+Access step detail in the dashboard by opening a run in **Orchestration > Runs** and selecting the **Steps** tab. You can also retrieve it via the API:
+
+```bash
+curl https://api.sericin.io/v1/pipelines/pipe_xyz789/runs/run_abc123/steps \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Alerts
+
+Configure alerts in **Settings > Alerts** to notify your team when important events occur. Alerts can be delivered via email or webhook, and you can subscribe to any of the following events:
+
+- `pipeline.failed` — a pipeline run ended in a failed state
+- `policy.violated` — a policy evaluation returned `DENY`
+- `approval.timeout` — an approval request was not resolved within the configured timeout window
+
+To create an alert via the API or export your configuration, use the following JSON structure:
+
+```json
+{
+  "event": "pipeline.failed",
+  "channel": "webhook",
+  "url": "https://hooks.example.com/oncall-alerts"
+}
+```
+
+<Tip>
+  Connect pipeline failure webhooks to your on-call system (such as PagerDuty or Opsgenie) for 24/7 coverage. Use the `pipeline.failed` event and point the alert URL at your on-call integration endpoint.
+</Tip>

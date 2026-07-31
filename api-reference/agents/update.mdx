@@ -1,0 +1,78 @@
+---
+title: "PATCH /agents/{id} — Update an Agent"
+sidebarTitle: "Update Agent"
+description: "PATCH /agents/{id} — updates an existing agent's name, role, description, tags, policy assignments, or lifecycle status."
+---
+
+Use `PATCH /agents/{id}` to update any writable field on an existing agent. This endpoint performs a **partial update** — only the fields you include in the request body are changed; all other fields retain their current values. You can update an agent's name, role, description, tags, policy assignments, or lifecycle status in a single request.
+
+## Request
+
+**Method:** `PATCH`  
+**URL:** `https://api.sericin.io/v1/agents/{id}`
+
+The following example pauses an active agent:
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/agents/agt_01hx9k2m3nqr4p5s6t7u8v9w \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "paused"
+  }'
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique ID of the agent you want to update. Agent IDs are prefixed with `agt_` (e.g., `agt_01hx9k2m3nqr4p5s6t7u8v9w`). You can retrieve this ID from the [List Agents](/api-reference/agents/list) or [Create Agent](/api-reference/agents/create) endpoints.
+</ParamField>
+
+## Request Body
+
+All body fields are optional. Include only the fields you want to change.
+
+<ParamField body="name" type="string">
+  A new unique name for the agent. Must be lowercase letters and hyphens only, between 3 and 64 characters.
+</ParamField>
+
+<ParamField body="role" type="string">
+  The agent's updated role. Accepted values: `reader`, `executor`, `coordinator`, or `admin`.
+</ParamField>
+
+<ParamField body="description" type="string">
+  An updated human-readable description of the agent's purpose.
+</ParamField>
+
+<ParamField body="tags" type="array">
+  A replacement array of string tags. This **overwrites** the existing tag set rather than merging with it.
+</ParamField>
+
+<ParamField body="policy_ids" type="array">
+  A replacement array of policy IDs to assign to the agent. This **overwrites** the existing policy assignment set rather than merging with it.
+</ParamField>
+
+<ParamField body="status" type="string">
+  The agent's updated lifecycle status. Accepted values: `active`, `paused`, or `decommissioned`. See the warning below before setting `decommissioned`.
+</ParamField>
+
+## Response
+
+A successful request returns `200 OK` with the complete updated agent object.
+
+```json
+{
+  "id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+  "name": "invoice-processor",
+  "role": "executor",
+  "description": "Processes and routes incoming vendor invoices.",
+  "tags": ["production", "finance"],
+  "policy_ids": ["pol_abc123", "pol_def456"],
+  "status": "paused",
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+<Warning>
+  Setting `status` to `decommissioned` is **irreversible**. A decommissioned agent cannot be reactivated or paused — it is permanently retired. Its audit history is preserved. If you only need to temporarily stop an agent, set `status` to `paused` instead.
+</Warning>

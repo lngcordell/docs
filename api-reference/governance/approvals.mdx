@@ -1,0 +1,148 @@
+---
+title: "Approvals API — Review and Act on Requests"
+sidebarTitle: "Approvals"
+description: "REST API endpoints for listing pending approval requests, approving or rejecting actions, and retrieving approval history in Sericin."
+---
+
+When an agent attempts an action governed by a `REQUIRE_APPROVAL` policy, Sericin creates an approval request and pauses the action until a designated approver responds. The Approvals API lets you build custom review interfaces, integrate approvals into your existing workflows, and pull approval history for audit and reporting purposes.
+
+## Endpoints
+
+### List Approvals
+
+Retrieve a list of approval requests, optionally filtered by status.
+
+```bash
+curl "https://api.sericin.io/v1/approvals?status=pending" \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "apr_7x8y9z0a1b2c3d4e",
+      "agent_id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+      "pipeline_run_id": "run_aa1bb2cc3dd4ee5f",
+      "action": "transfer_funds",
+      "policy_id": "pol_abc123",
+      "approver_group": "finance-leads",
+      "requested_at": "2024-06-01T14:32:00Z",
+      "resolved_at": null,
+      "status": "pending",
+      "resolved_by": null,
+      "comment": null
+    }
+  ],
+  "next_cursor": null
+}
+```
+
+---
+
+### Approve a Request
+
+Approve a pending approval request. You may include an optional comment explaining your decision.
+
+```bash
+curl -X POST https://api.sericin.io/v1/approvals/apr_7x8y9z0a1b2c3d4e/approve \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "comment": "Reviewed and approved — vendor is on the approved list."
+  }'
+```
+
+Returns `200 OK` with the updated approval object reflecting `"status": "approved"`.
+
+---
+
+### Reject a Request
+
+Reject a pending approval request. A comment is recommended to provide context to the requesting agent's operators.
+
+```bash
+curl -X POST https://api.sericin.io/v1/approvals/apr_7x8y9z0a1b2c3d4e/reject \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "comment": "Rejected — transfer amount exceeds weekly limit. Escalate to CFO."
+  }'
+```
+
+Returns `200 OK` with the updated approval object reflecting `"status": "rejected"`.
+
+---
+
+### Get an Approval
+
+Retrieve the full record for a single approval request by its ID.
+
+```bash
+curl https://api.sericin.io/v1/approvals/apr_7x8y9z0a1b2c3d4e \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+```json
+{
+  "id": "apr_7x8y9z0a1b2c3d4e",
+  "agent_id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+  "pipeline_run_id": "run_aa1bb2cc3dd4ee5f",
+  "action": "transfer_funds",
+  "policy_id": "pol_abc123",
+  "approver_group": "finance-leads",
+  "requested_at": "2024-06-01T14:32:00Z",
+  "resolved_at": "2024-06-01T15:10:00Z",
+  "status": "approved",
+  "resolved_by": "user_jsmith",
+  "comment": "Reviewed and approved — vendor is on the approved list."
+}
+```
+
+---
+
+## Approval Object Fields
+
+<ResponseField name="id" type="string">
+  The approval request's unique identifier, prefixed with `apr_`.
+</ResponseField>
+
+<ResponseField name="agent_id" type="string">
+  The ID of the agent that triggered the approval request.
+</ResponseField>
+
+<ResponseField name="pipeline_run_id" type="string">
+  The ID of the pipeline run in which the action was attempted. Returns `null` if the action was triggered outside a pipeline.
+</ResponseField>
+
+<ResponseField name="action" type="string">
+  The name of the action the agent attempted that triggered the approval requirement.
+</ResponseField>
+
+<ResponseField name="policy_id" type="string">
+  The ID of the policy that required approval for this action.
+</ResponseField>
+
+<ResponseField name="approver_group" type="string">
+  The identifier of the team or role group designated to review this request.
+</ResponseField>
+
+<ResponseField name="requested_at" type="string">
+  ISO 8601 UTC timestamp of when the approval request was created.
+</ResponseField>
+
+<ResponseField name="resolved_at" type="string">
+  ISO 8601 UTC timestamp of when the request was approved or rejected. Returns `null` while status is `pending`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status of the approval request. One of `pending`, `approved`, or `rejected`.
+</ResponseField>
+
+<ResponseField name="resolved_by" type="string">
+  The user ID of the person who approved or rejected the request. Returns `null` while status is `pending`.
+</ResponseField>
+
+<ResponseField name="comment" type="string">
+  An optional comment left by the reviewer when approving or rejecting. Returns `null` if no comment was provided.
+</ResponseField>

@@ -1,47 +1,111 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Sericin in Minutes"
+sidebarTitle: "Quickstart"
+description: "Learn how to register your first AI agent, apply a governance policy, and monitor actions using the Sericin platform in four steps."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+By the end of this guide, you will have a Sericin account, a working API key, a registered AI agent, and an active governance policy controlling what that agent is allowed to do. The whole process takes less than ten minutes and requires only a terminal and a web browser.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Create your account">
+    Navigate to [app.sericin.io](https://app.sericin.io) and click **Sign Up**. Enter your name, work email address, and a strong password, then submit the form. Sericin will send a verification email to the address you provided — open it and click **Verify Email** to activate your account. Once verified, you are taken directly to the Sericin dashboard.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Generate an API key">
+    From the dashboard, open **Settings** in the left sidebar and select **API Keys**. Click **New Key**, give it a descriptive name such as `quickstart-key`, and click **Generate**.
+
+    <Note>
+      Your API key is displayed only once. Copy it immediately and store it in a secure location such as a password manager or secrets vault. If you lose it, you will need to revoke the key and generate a new one.
+    </Note>
+
+    You will use this key to authenticate every request to the Sericin API. Pass it as a bearer token in the `Authorization` header of each call.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+
+  <Step title="Register your first agent">
+    With your API key in hand, register an AI agent by sending a `POST` request to the `/agents` endpoint. Replace `<YOUR_API_KEY>` with the key you copied in the previous step.
 
     ```bash
-    your-cli start
+    curl --request POST \
+      --url https://api.sericin.io/v1/agents \
+      --header "Authorization: Bearer <YOUR_API_KEY>" \
+      --header "Content-Type: application/json" \
+      --data '{
+        "name": "invoice-processor",
+        "role": "executor",
+        "description": "Reads incoming invoices, extracts line items, and submits them to the ERP system."
+      }'
     ```
+
+    A successful request returns a `201 Created` response containing the new agent's unique identifier. Save the `id` value — you will need it in the next step.
+
+    ```json
+    {
+      "id": "agt_01hx3k9mzp4qr7vw2c8nj5eby",
+      "name": "invoice-processor",
+      "role": "executor",
+      "description": "Reads incoming invoices, extracts line items, and submits them to the ERP system.",
+      "status": "active",
+      "created_at": "2025-01-14T09:23:11Z"
+    }
+    ```
+
+    <Tip>
+      The `role` field controls the default action categories available to your agent. See [Creating Agents](/agents/creating-agents) for the full list of built-in roles and instructions on defining custom roles.
+    </Tip>
+  </Step>
+
+  <Step title="Apply a governance policy">
+    Now attach a governance policy to the agent you just created. The policy below restricts the agent to business hours and requires a human approval for any transaction over $10,000. Replace `<YOUR_API_KEY>` with your API key and `<AGENT_ID>` with the `id` returned in the previous step.
+
+    ```bash
+    curl --request POST \
+      --url https://api.sericin.io/v1/policies \
+      --header "Authorization: Bearer <YOUR_API_KEY>" \
+      --header "Content-Type: application/json" \
+      --data '{
+        "name": "invoice-processor-policy",
+        "agent_id": "agt_01hx3k9mzp4qr7vw2c8nj5eby",
+        "rules": [
+          {
+            "condition": "action.amount > 10000",
+            "effect": "require_approval",
+            "approvers": ["finance-lead@example.com"]
+          },
+          {
+            "condition": "time.hour < 8 OR time.hour >= 18",
+            "effect": "deny",
+            "reason": "Agent is restricted to business hours (08:00–18:00 UTC)."
+          }
+        ]
+      }'
+    ```
+
+    A successful request returns the created policy object, including its `id` and current `status`.
+
+    ```json
+    {
+      "id": "pol_02jy4lbnas6rt8wx3d9ok6fcz",
+      "name": "invoice-processor-policy",
+      "agent_id": "agt_01hx3k9mzp4qr7vw2c8nj5eby",
+      "status": "active",
+      "rules_count": 2,
+      "created_at": "2025-01-14T09:31:44Z"
+    }
+    ```
+
+    Your agent is now governed. Every action it attempts will be evaluated against these rules in real time before execution is allowed to proceed.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Next steps
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+You have a registered agent and an active policy. Explore the rest of the platform to see what else Sericin can do.
+
+<CardGroup cols={2}>
+  <Card title="Agents Overview" icon="robot" href="/agents/overview">
+    Learn how to manage agent identities, roles, and lifecycle states across your organization.
+  </Card>
+  <Card title="Governance Overview" icon="shield-check" href="/governance/overview">
+    Dive deeper into policies, approval workflows, and how Sericin enforces rules at runtime.
+  </Card>
+</CardGroup>

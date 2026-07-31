@@ -1,0 +1,83 @@
+---
+title: "Sericin REST API Reference Overview"
+sidebarTitle: "Overview"
+description: "Explore the Sericin REST API: base URL, request format, response format, rate limits, error codes, and versioning conventions."
+---
+
+The Sericin REST API gives you programmatic control over every resource in your governance platform — register and manage agents, define and assign policies, act on approval requests, and query audit logs, all from your own tooling and automation pipelines.
+
+## Base URL
+
+All API requests are made to the following base URL:
+
+```
+https://api.sericin.io/v1
+```
+
+Every endpoint path in this reference is relative to this base URL.
+
+## Request Format
+
+- All requests that include a body must set the `Content-Type: application/json` header.
+- All responses are returned as JSON.
+- All date and timestamp values use **ISO 8601 UTC** format (e.g., `2024-06-01T12:00:00Z`).
+
+## Authentication
+
+Sericin authenticates requests using API keys passed as a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer <your_api_key>
+```
+
+For full details on generating keys, scopes, and rotation, see the [Authentication](/api-reference/authentication) page.
+
+## Rate Limits
+
+Each API key is limited to **1,000 requests per minute**. Every response includes the following headers so you can track your usage:
+
+| Header | Description |
+|---|---|
+| `X-RateLimit-Limit` | Maximum requests allowed per minute |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
+
+When you exceed the limit, the API returns `429 Too Many Requests`. Implement exponential backoff before retrying.
+
+## Errors
+
+The API uses standard HTTP status codes. All error responses include a JSON body with an `error` object containing a machine-readable `code` and a human-readable `message`.
+
+| Status Code | Meaning |
+|---|---|
+| `400 Bad Request` | Invalid or missing request parameters |
+| `401 Unauthorized` | Missing or invalid API key |
+| `403 Forbidden` | API key lacks permission for this action |
+| `404 Not Found` | Resource does not exist |
+| `409 Conflict` | Resource already exists or state conflict |
+| `429 Too Many Requests` | Rate limit exceeded |
+| `500 Internal Server Error` | Unexpected server error; retry with backoff |
+
+**Example error response:**
+
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid API key"
+  }
+}
+```
+
+## Pagination
+
+List endpoints return paginated results using **cursor-based pagination**. Each paginated response includes a `next_cursor` field. Pass its value as the `cursor` query parameter to retrieve the next page.
+
+- **Default page size:** 20 results
+- **Maximum page size:** 100 results (set via the `per_page` query parameter)
+
+When `next_cursor` is `null` or absent, you have reached the last page.
+
+## Versioning
+
+The current API version is **v1**, included directly in the URL path (e.g., `https://api.sericin.io/v1/agents`). Breaking changes will be introduced under a new version increment. Non-breaking additions — such as new optional fields or new endpoints — may be made to existing versions without notice.

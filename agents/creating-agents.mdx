@@ -1,0 +1,75 @@
+---
+title: "Create and Configure Agents in Sericin"
+sidebarTitle: "Creating Agents"
+description: "Step-by-step guide to registering a new agent in Sericin using the dashboard or REST API, with configuration options explained."
+---
+
+Before Sericin can govern an AI process, you must register it as an agent. Registration gives the agent a stable identity, associates it with a role, and makes it available for policy attachment. You can register agents through the Sericin dashboard for a guided experience, or directly through the REST API for automation and infrastructure-as-code workflows.
+
+## Using the dashboard
+
+<Steps>
+  <Step title="Open the Agents section">
+    In the left navigation, click **Agents** to open the agent management view.
+  </Step>
+  <Step title="Start a new agent">
+    Click **New Agent** in the top-right corner of the Agents page.
+  </Step>
+  <Step title="Fill in the agent details">
+    Enter a **Name**, select a **Role** from the dropdown, and optionally add a **Description** that explains what this agent does. Refer to [Agent Roles](/agents/agent-roles) if you are unsure which role to choose.
+  </Step>
+  <Step title="Save the agent">
+    Click **Save**. Sericin registers the agent and assigns it a unique `id`. The agent status is set to `active` by default.
+  </Step>
+</Steps>
+
+## Using the API
+
+Send a `POST` request to `/v1/agents` with the agent's name, role, and an optional description.
+
+```bash
+curl -X POST https://api.sericin.io/v1/agents \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "invoice-processor", "role": "executor", "description": "Processes incoming invoices and routes for approval"}'
+```
+
+A successful request returns the full agent object:
+
+```json
+{
+  "id": "agt_01j9kxmr4e2v8pqn5c7wd3bt6f",
+  "name": "invoice-processor",
+  "role": "executor",
+  "description": "Processes incoming invoices and routes for approval",
+  "status": "active",
+  "created_at": "2024-11-14T09:32:10Z",
+  "policy_ids": []
+}
+```
+
+## Configuration options
+
+<ParamField body="name" type="string" required>
+  A unique, human-readable name for the agent. Used in logs, audit trails, and the dashboard. See the naming tip below for recommended formatting.
+</ParamField>
+
+<ParamField body="role" type="string" required>
+  The agent's capability category. Accepted values are `reader`, `executor`, `coordinator`, and `admin`. See [Agent Roles](/agents/agent-roles) for a full description of each role.
+</ParamField>
+
+<ParamField body="description" type="string">
+  A plain-text description of the agent's purpose. Shown in the dashboard and included in audit exports to help operators understand what the agent does.
+</ParamField>
+
+<ParamField body="tags" type="array">
+  An optional list of string tags for grouping and filtering agents. For example, `["finance", "production"]`. Tags can also be used for bulk lifecycle operations.
+</ParamField>
+
+<ParamField body="policy_ids" type="array">
+  An optional list of policy IDs to attach to the agent at creation time. You can also attach policies after registration through the Policies API.
+</ParamField>
+
+<Tip>
+  Use lowercase hyphenated names — such as `invoice-processor` or `report-generator` — for all agents. This format is URL-safe, easy to type in API calls, and consistent with how Sericin displays agents in log output.
+</Tip>

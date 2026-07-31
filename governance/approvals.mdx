@@ -1,0 +1,108 @@
+---
+title: "Configure and Manage Agent Action Approval Workflows"
+sidebarTitle: "Approvals"
+description: "Set up human-in-the-loop approval workflows for sensitive agent actions, assign approver groups, and manage pending approval requests."
+---
+
+When a policy has an effect of `REQUIRE_APPROVAL`, Sericin automatically creates an approval request and pauses the agent action until a designated approver responds. This gives your team a reliable checkpoint for high-risk or high-value operations — the agent can keep running autonomously right up until the moment it hits an action that warrants human judgment, at which point control transfers cleanly to a person.
+
+## How approvals work
+
+The approval workflow follows a straightforward sequence:
+
+1. **Policy triggers** — the policy engine evaluates the agent's action and returns `REQUIRE_APPROVAL`.
+2. **Approval request created** — Sericin creates an approval request record, capturing the full action context (agent ID, action type, payload, and the policy that triggered the request).
+3. **Approvers notified** — every member of the designated approver group receives a notification via email and/or webhook, depending on your notification settings.
+4. **Approver reviews context** — the approver opens the request in the dashboard (or via API) and sees the complete action payload so they can make an informed decision.
+5. **Approves or rejects** — the approver submits their decision, optionally attaching a comment.
+6. **Agent action proceeds or is cancelled** — if approved, Sericin releases the paused action and the agent continues; if rejected, the action is cancelled and the agent receives an error response it can handle programmatically.
+
+## Approver groups
+
+Approver groups are named collections of Sericin users who have the authority to approve or reject requests for a given policy. Groups let you route different types of decisions to the right team — for example, `finance-managers` for invoice approvals and `security-team` for access-provisioning requests.
+
+**Create a group in the dashboard:**
+
+1. Navigate to **Settings > Approver Groups**.
+2. Click **New Group**.
+3. Enter a name (this becomes the `approver_group` value you reference in policies).
+4. Add one or more Sericin users to the group.
+5. Set the **quorum** — the minimum number of approvers required before a request is considered resolved. For example, a quorum of `1` means any single member can approve; a quorum of `2` requires two independent approvals before the action proceeds.
+
+You can update group membership and quorum at any time; changes apply to all new approval requests immediately.
+
+## Reviewing and acting on approvals
+
+### Via the dashboard
+
+Go to **Governance > Approvals** to see a list of all pending requests. Each entry shows the agent that triggered the request, the action type, the full action payload, the policy that applied, and how long the request has been waiting. Click any request to review the details and submit your decision.
+
+### Via the API
+
+**List pending approvals:**
+
+```bash
+curl -X GET "https://api.sericin.io/v1/approvals?status=pending" \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "apr_11223344",
+      "agent_id": "agt_xyz789",
+      "action_type": "invoice.submit",
+      "action_payload": {
+        "vendor": "Acme Corp",
+        "amount": 24500,
+        "currency": "USD"
+      },
+      "policy_id": "pol_abc123",
+      "approver_group": "finance-managers",
+      "status": "pending",
+      "created_at": "2025-01-15T14:05:00Z",
+      "timeout_at": "2025-01-16T14:05:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+**Approve a request:**
+
+```bash
+curl -X POST https://api.sericin.io/v1/approvals/apr_11223344/approve \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"comment": "Verified against Q1 budget. Approved."}'
+```
+
+**Reject a request:**
+
+```bash
+curl -X POST https://api.sericin.io/v1/approvals/apr_11223344/reject \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"comment": "Amount exceeds departmental budget ceiling. Please resubmit after budget review."}'
+```
+
+The `comment` field is optional but strongly recommended — it is captured in the audit log and provides useful context for future reviews.
+
+## Approval timeouts
+
+To prevent agent workflows from stalling indefinitely, policies can include a `timeout_hours` value. If no approver submits a decision within that window, Sericin automatically rejects the request and cancels the agent action. The timeout event is recorded in the audit log the same way a manual rejection would be.
+
+To set a timeout when creating or updating a policy, include the field in your request body:
+
+```json
+{
+  "timeout_hours": 24
+}
+```
+
+If you omit `timeout_hours`, approval requests wait indefinitely until an approver acts.
+
+<Warning>
+  Rejected approvals — whether rejected manually or due to a timeout — cannot be reversed. The original approval request is closed permanently. If the agent needs to retry the action, it must resubmit the action from scratch, which will create a new approval request.
+</Warning>

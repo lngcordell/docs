@@ -1,0 +1,76 @@
+---
+title: "Build Multi-Agent Pipelines in Sericin"
+sidebarTitle: "Pipelines"
+description: "Learn how to create orchestration pipelines that coordinate sequences of agent actions, with branching logic and governance applied at every step."
+---
+
+A pipeline is a directed sequence of agent steps — each governed by Sericin policies — that runs automatically in response to a trigger. Pipelines let you coordinate multiple agents across a single workflow, with branching logic to handle success and failure at every step.
+
+## Pipeline structure
+
+Every pipeline definition specifies a trigger, an ordered list of steps, and routing rules that control what happens after each step completes.
+
+```json
+{
+  "id": "pipe_xyz789",
+  "name": "invoice-processing",
+  "description": "End-to-end invoice ingestion, validation, and approval routing",
+  "trigger": { "type": "webhook", "source": "accounting-system" },
+  "steps": [
+    { "agent_id": "agt_001", "action": "invoice.parse", "on_success": "step_2", "on_failure": "notify-error" },
+    { "agent_id": "agt_002", "action": "invoice.validate", "on_success": "step_3" },
+    { "agent_id": "agt_003", "action": "invoice.submit", "on_success": "end" }
+  ]
+}
+```
+
+The key fields in a pipeline definition are:
+
+- **`trigger`** — defines what starts the pipeline. The `type` field can be `webhook`, `schedule`, or `manual`. See [Triggers](/orchestration/triggers) for full details.
+- **`steps`** — an ordered array of agent actions. Each step references an `agent_id` and the `action` that agent should perform.
+- **`on_success` / `on_failure`** — routing rules that point to the ID of the next step to execute, a named error handler, or the reserved value `"end"` to terminate the pipeline. If `on_failure` is omitted, the pipeline fails immediately on any error.
+
+## Creating a pipeline
+
+### Dashboard
+
+Open **Orchestration > Pipelines > New Pipeline** to launch the drag-and-drop pipeline builder. Add steps by dragging agents from the sidebar onto the canvas, then connect them with success and failure edges. Fill in the trigger configuration in the right-hand panel and click **Save**.
+
+### API
+
+Send a `POST` request to `/pipelines` with your pipeline definition in the request body:
+
+```bash
+curl -X POST https://api.sericin.io/v1/pipelines \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "invoice-processing",
+    "description": "End-to-end invoice ingestion, validation, and approval routing",
+    "trigger": { "type": "webhook", "source": "accounting-system" },
+    "steps": [
+      { "agent_id": "agt_001", "action": "invoice.parse", "on_success": "step_2", "on_failure": "notify-error" },
+      { "agent_id": "agt_002", "action": "invoice.validate", "on_success": "step_3" },
+      { "agent_id": "agt_003", "action": "invoice.submit", "on_success": "end" }
+    ]
+  }'
+```
+
+A successful response returns the new pipeline object, including its assigned `id`:
+
+```json
+{
+  "id": "pipe_xyz789",
+  "name": "invoice-processing",
+  "status": "active",
+  "created_at": "2025-01-15T10:30:00Z"
+}
+```
+
+## Pipeline governance
+
+Each step in a pipeline executes under the governance rules of the assigned agent. Policies, approval workflows, and audit logging all apply exactly as they do for standalone agent calls — running a step inside a pipeline does not bypass or relax any governance controls. If a policy evaluation returns `DENY` for a step, that step fails and its `on_failure` routing rule fires.
+
+<Tip>
+  Break complex pipelines into smaller sub-pipelines for easier auditing and reuse. Reference a sub-pipeline as a step using `"action": "pipeline.run"` and pass the target pipeline's `id` as a parameter.
+</Tip>

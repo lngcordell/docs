@@ -1,0 +1,77 @@
+---
+title: "Trigger Pipelines with Events and Schedules"
+sidebarTitle: "Triggers"
+description: "Configure event-driven webhooks, scheduled cron triggers, and manual triggers to start Sericin pipelines automatically or on demand."
+---
+
+Triggers define what starts a pipeline. Sericin supports three trigger types — webhook, schedule, and manual — so you can kick off workflows automatically in response to external events, on a recurring schedule, or on demand when you need them.
+
+## Trigger types
+
+Each pipeline has exactly one trigger. Choose the type that matches how the pipeline should be initiated.
+
+| Type | Description | Example Use Case |
+|------|-------------|-----------------|
+| `webhook` | Fires when an HTTP POST is received at the pipeline's trigger URL | External system pushes an event |
+| `schedule` | Fires on a cron expression | Nightly report generation |
+| `manual` | Fired via API or dashboard button | Ad-hoc investigation workflows |
+
+## Webhook triggers
+
+Every pipeline with a webhook trigger has a unique trigger URL that Sericin generates automatically. Find it in the dashboard under **Orchestration > Pipelines > [pipeline] > Trigger URL**.
+
+To fire the pipeline, send an HTTP POST to that URL with your event payload in the request body:
+
+```bash
+curl -X POST https://hooks.sericin.io/trigger/pipe_xyz789 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "invoice_id": "inv_00123",
+    "amount": 4250.00,
+    "currency": "USD",
+    "submitted_by": "vendor@example.com"
+  }'
+```
+
+Include your API key as a `Bearer` token in the `Authorization` header to authenticate the trigger call. Unauthenticated requests are rejected with `401 Unauthorized`.
+
+## Schedule triggers
+
+Use a schedule trigger to run a pipeline automatically on a repeating cadence. Set the `cron` expression in the dashboard under **Orchestration > Pipelines > [pipeline] > Trigger**, or include it in the `trigger` object when creating a pipeline via the API:
+
+```json
+{
+  "trigger": {
+    "type": "schedule",
+    "cron": "0 2 * * *"
+  }
+}
+```
+
+The example above runs the pipeline every day at 02:00. All cron expressions are evaluated in UTC. Use a tool like [crontab.guru](https://crontab.guru) to validate your expression before saving.
+
+## Manual triggers
+
+Use a manual trigger when you want to run a pipeline on demand rather than in response to an event or a schedule.
+
+### Dashboard
+
+Navigate to **Orchestration > Pipelines**, select the pipeline you want to run, and click **Run Now**. You can optionally provide a JSON input payload in the dialog before confirming.
+
+### API
+
+Send a `POST` request to `/pipelines/{id}/run`:
+
+```bash
+curl -X POST https://api.sericin.io/v1/pipelines/pipe_xyz789/run \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "note": "Manual run triggered by on-call engineer"
+    }
+  }'
+```
+
+The response includes the new run ID, which you can use to track execution progress in the [Monitoring](/orchestration/monitoring) view.

@@ -1,0 +1,112 @@
+---
+title: "Create and Manage Your Sericin Governance Policies"
+sidebarTitle: "Policies"
+description: "Learn how to create, assign, and manage Sericin policies that control what your agents are allowed to do, when, and under what conditions."
+---
+
+Policies are the primary mechanism Sericin uses to govern agent behavior. By attaching one or more policies to an agent, you establish the exact rules the platform enforces before any action is executed — without writing custom middleware or modifying your agent's code.
+
+## What is a policy?
+
+A policy is a named set of rules that the Sericin policy engine evaluates when an agent attempts an action. Each policy defines one or more conditions (the circumstances under which the rule applies) and a single effect (what happens when those conditions are met). Policies can allow an action to proceed, deny it outright, or pause it until a designated human approver reviews and decides.
+
+## Policy structure
+
+Below is an example policy that requires human approval before an agent can submit any invoice over $10,000:
+
+```json
+{
+  "id": "pol_abc123",
+  "name": "invoice-approval-required",
+  "description": "Requires human approval for invoices over $10,000",
+  "conditions": [
+    { "field": "action.type", "operator": "eq", "value": "invoice.submit" },
+    { "field": "action.amount", "operator": "gt", "value": 10000 }
+  ],
+  "effect": "REQUIRE_APPROVAL",
+  "approver_group": "finance-managers"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier assigned by Sericin when the policy is created. |
+| `name` | string | A URL-safe slug you choose to identify the policy. Must be unique within your organization. |
+| `description` | string | A human-readable summary of what the policy does. Shown in the dashboard and audit logs. |
+| `conditions` | array | One or more condition objects. All conditions must match for the effect to apply. Each condition has a `field` (dot-notation path into the action payload), an `operator` (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`), and a `value`. |
+| `effect` | string | The outcome when all conditions match. One of `ALLOW`, `DENY`, or `REQUIRE_APPROVAL`. |
+| `approver_group` | string | The name of the approver group to notify when `effect` is `REQUIRE_APPROVAL`. Omit this field for `ALLOW` or `DENY` policies. |
+
+## Creating a policy
+
+Send a `POST` request to `/policies` with your policy definition in the request body:
+
+```bash
+curl -X POST https://api.sericin.io/v1/policies \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "invoice-approval-required",
+    "description": "Requires human approval for invoices over $10,000",
+    "conditions": [
+      { "field": "action.type", "operator": "eq", "value": "invoice.submit" },
+      { "field": "action.amount", "operator": "gt", "value": 10000 }
+    ],
+    "effect": "REQUIRE_APPROVAL",
+    "approver_group": "finance-managers"
+  }'
+```
+
+A successful response returns the created policy object, including its assigned `id`:
+
+```json
+{
+  "id": "pol_abc123",
+  "name": "invoice-approval-required",
+  "description": "Requires human approval for invoices over $10,000",
+  "conditions": [
+    { "field": "action.type", "operator": "eq", "value": "invoice.submit" },
+    { "field": "action.amount", "operator": "gt", "value": 10000 }
+  ],
+  "effect": "REQUIRE_APPROVAL",
+  "approver_group": "finance-managers",
+  "created_at": "2025-01-15T10:32:00Z",
+  "updated_at": "2025-01-15T10:32:00Z"
+}
+```
+
+## Assigning policies to agents
+
+You can assign one or more policies to an agent by patching the agent resource with an array of policy IDs:
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/agents/agt_xyz789 \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "policy_ids": ["pol_abc123", "pol_def456"]
+  }'
+```
+
+Alternatively, to add a single policy to an agent without replacing the full list, use the dedicated assignment endpoint:
+
+```bash
+curl -X POST https://api.sericin.io/v1/policies/pol_abc123/agents/agt_xyz789 \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+Both approaches take effect immediately — the next action the agent attempts will be evaluated against the updated policy set.
+
+## Policy evaluation order
+
+When an agent has multiple policies assigned, Sericin evaluates them according to the following precedence rules:
+
+1. **DENY takes precedence over everything.** If any policy evaluates to `DENY`, the action is immediately blocked regardless of other policies.
+2. **REQUIRE_APPROVAL is evaluated after explicit ALLOWs.** If no policy denies the action and at least one policy requires approval, the action is paused for human review.
+3. **ALLOW is the default fallback.** If no policy matches or all matching policies evaluate to `ALLOW`, the action proceeds.
+
+This means a single `DENY` policy can always override a permissive `ALLOW`, giving you a reliable way to enforce hard limits across any agent.
+
+<Tip>
+  When you're deploying an agent for the first time, consider setting your policies to `REQUIRE_APPROVAL` rather than `ALLOW`. This lets you observe the agent's behavior in production without blocking it outright. Once you're confident the agent is acting as expected, update the effect to `ALLOW` to remove the manual review step.
+</Tip>

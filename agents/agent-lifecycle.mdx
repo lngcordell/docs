@@ -1,0 +1,64 @@
+---
+title: "Agent Lifecycle: Active, Paused, and Decommissioned"
+sidebarTitle: "Lifecycle"
+description: "Learn how to manage an agent's lifecycle in Sericin, including pausing, reactivating, and safely decommissioning agents you no longer need."
+---
+
+Every agent in Sericin moves through a defined lifecycle from the moment it is registered. Understanding these states — and the transitions between them — lets you safely manage agents during maintenance, respond to incidents, and retire agents while preserving the audit records your organization depends on. All lifecycle transitions are performed through a single `PATCH` request to the agent's status field.
+
+## Lifecycle states
+
+**active** — The agent is operational. Sericin evaluates all attached policies normally for every action the agent attempts. Use this state for any agent that should be able to take actions in your system.
+
+**paused** — The agent is suspended. All policy evaluations for a paused agent return `DENIED` automatically, which means no actions are executed. The agent's configuration, policies, and history are fully preserved. You can reactivate a paused agent at any time.
+
+**decommissioned** — The agent has reached permanent end-of-life. Sericin retains the agent's record — including its full action history and audit log — for compliance purposes, but the agent cannot be reactivated. Once you decommission an agent, the transition is irreversible.
+
+## Transitioning states
+
+### Pausing an agent
+
+Send a `PATCH` request with `"status": "paused"` to suspend the agent immediately:
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "paused"}'
+```
+
+### Reactivating an agent
+
+To bring a paused agent back into service, set its status back to `active`:
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "active"}'
+```
+
+The agent resumes normal policy evaluation immediately after the request succeeds.
+
+### Decommissioning an agent
+
+To permanently retire an agent, set its status to `decommissioned`:
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "decommissioned"}'
+```
+
+<Warning>
+  Decommissioning is irreversible. Once an agent's status is set to `decommissioned`, it cannot be reactivated or modified. If you are unsure whether you will need the agent again, pause it instead.
+</Warning>
+
+## Best practices
+
+- **Pause agents during maintenance windows.** If you need to update an agent's configuration, attached policies, or the underlying system it interacts with, pause the agent first. This prevents partial actions from being executed while changes are in flight.
+
+- **Decommission rather than delete.** Decommissioned agents retain their full action history and audit log. Deleting an agent removes that record permanently. Preserve decommissioned agents to maintain a complete audit trail for compliance and incident review.
+
+- **Use tags to manage agents in bulk.** Apply consistent tags — such as `environment:production` or `team:finance` — when you register agents. You can then filter by tag in the dashboard or API to identify agents that need a lifecycle change and act on them as a group.

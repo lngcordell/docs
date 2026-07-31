@@ -1,0 +1,87 @@
+---
+title: "Core Concepts: Agents, Policies, and Pipelines"
+sidebarTitle: "Concepts"
+description: "Understand the fundamental building blocks of Sericin: agents, roles, policies, approval workflows, pipelines, and the immutable audit log."
+---
+
+Sericin is built around a simple mental model: every AI agent operating in your organization has a declared identity, a set of permitted behaviors defined by policies, and a complete record of everything it has ever done. The concepts below form the vocabulary you will encounter throughout the platform. Understanding them will help you design governance structures that are both rigorous and practical.
+
+## Agents
+
+An agent is a registered AI entity with a defined identity, a role, and a permitted action scope. Before any AI system can take governed actions through Sericin, you must register it as an agent. Registration gives the system a stable identifier and associates it with metadata — its name, purpose, owning team, and the role that determines its baseline capabilities.
+
+<Info>
+  A single underlying AI model can back multiple agents. You might register separate agents for staging and production environments, or one per business unit, so that policies and audit trails remain cleanly separated.
+</Info>
+
+Every agent has a lifecycle status — `active`, `suspended`, or `decommissioned` — that you control at any time. Suspending an agent immediately halts its ability to take governed actions without deleting its history.
+
+## Roles
+
+Roles define what categories of action an agent is permitted to perform. Sericin ships with three built-in roles that cover the most common patterns:
+
+| Role | Permitted action categories |
+|---|---|
+| `read-only` | Query and retrieve data; no writes or external calls |
+| `executor` | Read, write, and call external APIs within policy constraints |
+| `coordinator` | All executor permissions plus the ability to delegate tasks to other registered agents |
+
+You can also define custom roles that map precisely to your organization's requirements. A role acts as the first line of constraint — policies then add finer-grained rules on top.
+
+<Note>
+  Assigning the least-privileged role that meets the agent's functional requirements is a best practice. Escalate to a broader role only when your policy rules cannot express the required constraint.
+</Note>
+
+## Policies
+
+Policies are rules evaluated at runtime that govern what an agent can do, when it can do it, and under what conditions. Each policy is attached to one or more agents and contains an ordered list of rules. When an agent attempts an action, Sericin evaluates the relevant rules in order and applies the first matching effect: `allow`, `deny`, or `require_approval`.
+
+Rules can reference a rich set of context attributes, including:
+
+- **Action properties** — type, target resource, payload values (e.g., `action.amount > 10000`)
+- **Time and schedule** — hour, day of week, calendar windows
+- **Agent identity** — the agent's role, owning team, or environment tag
+- **External signals** — the result of a webhook call to your own authorization service
+
+Policies are versioned. When you update a policy, the previous version is retained in the audit log so you can always reconstruct the exact rule set that was active at any point in time.
+
+## Approval Workflows
+
+When a policy rule produces a `require_approval` effect, Sericin routes the pending action through a configurable approval chain before allowing execution to continue. You specify one or more approvers — individual users or team groups — and an optional timeout.
+
+<Info>
+  If no approver responds before the timeout elapses, the default behavior is to deny the action. You can override this on a per-rule basis to allow the action to proceed automatically after the deadline, which is useful for low-risk operations that simply benefit from a human checkpoint during an initial rollout period.
+</Info>
+
+Approvers receive a notification — via email, Slack, or a webhook — containing the full action context. They can approve or reject directly from the notification without logging into the Sericin dashboard. Every approval decision is recorded in the audit log alongside the approver's identity and timestamp.
+
+## Pipelines
+
+Pipelines are orchestrated sequences of agent actions connected by triggers and conditions. Where a policy governs a single action in isolation, a pipeline governs a multi-step workflow — for example, extracting data, transforming it, calling an external service, and writing results to a database.
+
+Each step in a pipeline is executed by a registered agent, inheriting that agent's policies. The pipeline itself adds an additional layer of control: you can define inter-step conditions (proceed only if the previous step succeeded), parallel branches, and rollback handlers that fire when a step fails.
+
+<Note>
+  Every step in a pipeline is independently logged and policy-checked. Even if you orchestrate ten agents in a single pipeline, Sericin evaluates each action individually, so there is no way for a pipeline to circumvent per-agent governance rules.
+</Note>
+
+## Audit Log
+
+The audit log is an immutable, timestamped record of every agent action and every policy decision Sericin has made. Each entry captures who initiated the action, which agent executed it, which policy rule matched, what effect was applied, and the full request and response payload.
+
+The audit log is append-only by design — entries cannot be modified or deleted. This makes it suitable as evidence for compliance audits, incident investigations, and regulatory reporting. You can query the log through the dashboard or the API, and you can stream entries to your SIEM or data warehouse in real time using a log export integration.
+
+---
+
+## Explore further
+
+Now that you understand the core building blocks, take a deeper look at how agents and governance policies work in practice.
+
+<CardGroup cols={2}>
+  <Card title="Agents Overview" icon="robot" href="/agents/overview">
+    Learn how to create, configure, and manage AI agents across your organization.
+  </Card>
+  <Card title="Governance Overview" icon="shield-check" href="/governance/overview">
+    Explore how policies, approval workflows, and the audit log work together to keep your AI systems in check.
+  </Card>
+</CardGroup>

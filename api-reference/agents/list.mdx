@@ -1,0 +1,79 @@
+---
+title: "GET /agents — List All Registered Agents"
+sidebarTitle: "List Agents"
+description: "GET /agents — returns a paginated list of all agents in your organization, with optional filtering by status, role, and tags."
+---
+
+The `GET /agents` endpoint returns a paginated list of every agent registered in your organization. You can narrow results using query parameters that filter by lifecycle status, role, or tags — making it straightforward to build dashboards, audits, or automation workflows that target specific subsets of your agent fleet.
+
+## Request
+
+**Method:** `GET`  
+**URL:** `https://api.sericin.io/v1/agents`
+
+```bash
+curl https://api.sericin.io/v1/agents?status=active&role=executor \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+## Query Parameters
+
+<ParamField query="status" type="string">
+  Filter by agent lifecycle status. Accepted values: `active`, `paused`, or `decommissioned`.
+</ParamField>
+
+<ParamField query="role" type="string">
+  Filter by agent role. Accepted values: `reader`, `executor`, `coordinator`, or `admin`.
+</ParamField>
+
+<ParamField query="tags" type="string">
+  Comma-separated list of tags to filter by. Returns agents that have **all** of the specified tags (AND logic). Example: `tags=production,payments`.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor returned as `next_cursor` in the previous response. Omit this parameter to start from the first page.
+</ParamField>
+
+<ParamField query="per_page" type="integer">
+  Number of results to return per page. Defaults to `20`. Maximum is `100`.
+</ParamField>
+
+## Response
+
+A successful request returns `200 OK` with a JSON object containing a `data` array of agent objects and a `next_cursor` for pagination.
+
+```json
+{
+  "data": [
+    {
+      "id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+      "name": "invoice-processor",
+      "role": "executor",
+      "description": "Processes and routes incoming vendor invoices.",
+      "tags": ["production", "finance"],
+      "policy_ids": ["pol_abc123", "pol_def456"],
+      "status": "active",
+      "created_at": "2024-03-15T09:22:00Z"
+    },
+    {
+      "id": "agt_02jy0l3n4ors5q6t7u8v9w0x",
+      "name": "report-reader",
+      "role": "reader",
+      "description": "Reads and summarizes weekly compliance reports.",
+      "tags": ["production", "compliance"],
+      "policy_ids": ["pol_abc123"],
+      "status": "active",
+      "created_at": "2024-04-02T14:05:00Z"
+    }
+  ],
+  "next_cursor": "cur_eyJpZCI6ImFndF8wMmpZIn0"
+}
+```
+
+<ResponseField name="data" type="array">
+  Array of agent objects matching the query. Each object contains the agent's full record including its `id`, `name`, `role`, `status`, and assigned `policy_ids`.
+</ResponseField>
+
+<ResponseField name="next_cursor" type="string">
+  Cursor value for the next page of results. Pass this as the `cursor` query parameter in your next request. Returns `null` when you have reached the last page.
+</ResponseField>

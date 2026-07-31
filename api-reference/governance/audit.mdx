@@ -1,0 +1,128 @@
+---
+title: "Audit Logs API — Query the Activity Record"
+sidebarTitle: "Audit Logs"
+description: "GET /audit-logs — query the immutable audit log to retrieve agent actions, policy decisions, and approval outcomes with filtering and export."
+---
+
+Every action taken by an agent, every policy decision Sericin makes, and every approval outcome is written to the audit log immediately and cannot be modified or deleted. The Audit Logs API lets you query this record programmatically — filter by agent, time range, action type, or outcome — and export bulk data as CSV for compliance reviews or SIEM ingestion.
+
+## Endpoints
+
+### List Audit Log Entries
+
+Query audit log entries with optional filters. All filter parameters can be combined.
+
+```bash
+curl "https://api.sericin.io/v1/audit-logs?agent_id=agt_01hx9k2m3nqr4p5s6t7u8v9w&from=2024-06-01T00:00:00Z&to=2024-06-30T23:59:59Z&outcome=denied" \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `agent_id` | string | Filter to entries for a specific agent |
+| `from` | string (ISO 8601) | Return entries at or after this timestamp |
+| `to` | string (ISO 8601) | Return entries at or before this timestamp |
+| `action_type` | string | Filter by the type of action attempted |
+| `outcome` | string | Filter by outcome: `succeeded`, `failed`, `denied`, `approved`, or `rejected` |
+
+```json
+{
+  "data": [
+    {
+      "id": "log_1a2b3c4d5e6f7g8h",
+      "agent_id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+      "pipeline_run_id": "run_aa1bb2cc3dd4ee5f",
+      "action_type": "transfer_funds",
+      "timestamp": "2024-06-15T11:04:22Z",
+      "policy_result": "DENY",
+      "outcome": "denied",
+      "approver": null,
+      "duration_ms": 43,
+      "metadata": {
+        "amount": 15000,
+        "currency": "USD",
+        "destination": "ext-account-9922"
+      }
+    }
+  ],
+  "next_cursor": "cur_eyJpZCI6ImxvZ18xYTJiIn0"
+}
+```
+
+---
+
+### Get a Single Log Entry
+
+Retrieve the full record for one audit log entry by its ID.
+
+```bash
+curl https://api.sericin.io/v1/audit-logs/log_1a2b3c4d5e6f7g8h \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+Returns `200 OK` with the full log entry object.
+
+---
+
+### Export as CSV
+
+To download audit log entries in CSV format — for example, to import into a SIEM or spreadsheet — pass an `Accept: text/csv` header. All the same query parameters apply.
+
+```bash
+curl "https://api.sericin.io/v1/audit-logs?from=2024-06-01T00:00:00Z&to=2024-06-30T23:59:59Z" \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Accept: text/csv" \
+  -o audit-june-2024.csv
+```
+
+---
+
+## Log Entry Fields
+
+<ResponseField name="id" type="string">
+  The log entry's unique identifier, prefixed with `log_`.
+</ResponseField>
+
+<ResponseField name="agent_id" type="string">
+  The ID of the agent that performed or attempted the action.
+</ResponseField>
+
+<ResponseField name="pipeline_run_id" type="string">
+  The ID of the pipeline run associated with the action. Returns `null` if the action was not part of a pipeline execution.
+</ResponseField>
+
+<ResponseField name="action_type" type="string">
+  A string identifying the type of action that was attempted (e.g., `transfer_funds`, `read_document`, `send_email`).
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  ISO 8601 UTC timestamp of when the action was attempted.
+</ResponseField>
+
+<ResponseField name="policy_result" type="string">
+  The decision returned by the governing policy at the time of the action. One of `ALLOW`, `DENY`, or `REQUIRE_APPROVAL`.
+</ResponseField>
+
+<ResponseField name="outcome" type="string">
+  The final outcome of the action. One of `succeeded`, `failed`, `denied`, `approved`, or `rejected`.
+</ResponseField>
+
+<ResponseField name="approver" type="string">
+  The user ID of the person who approved or rejected the action when `policy_result` is `REQUIRE_APPROVAL`. Returns `null` for non-approval outcomes.
+</ResponseField>
+
+<ResponseField name="duration_ms" type="integer">
+  The time in milliseconds from when the action was initiated to when it was resolved.
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  A JSON object containing additional context about the action, such as amounts, destinations, or resource identifiers. Structure varies by `action_type`.
+</ResponseField>
+
+## Pagination
+
+Audit log queries use the same cursor-based pagination as all other list endpoints. The response includes a `next_cursor` field; pass it as the `cursor` query parameter to retrieve the next page. The default page size is 20 and the maximum is 100 (via `per_page`).
+
+For bulk data exports covering large time ranges, use the **CSV export endpoint** rather than paginating through the JSON API. The CSV export streams the full result set matching your filters in a single response, making it more efficient for compliance and reporting workflows.

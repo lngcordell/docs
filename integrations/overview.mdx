@@ -1,0 +1,30 @@
+---
+title: "Integrations: Connect Sericin to Your Stack"
+sidebarTitle: "Overview"
+description: "Learn how to integrate Sericin with your existing tools using webhooks for event streaming, SSO for identity, and the REST API for automation."
+---
+
+Sericin is designed to fit into your existing infrastructure rather than replace it. You can stream real-time events to your security and observability tools, authenticate your team through your corporate identity provider, and automate every aspect of agent governance using the REST API.
+
+## Integration options
+
+<CardGroup cols={3}>
+  <Card title="Webhooks" icon="webhook" href="/integrations/webhooks">
+    Push real-time event notifications — agent actions, policy decisions, approvals, and pipeline outcomes — to any HTTPS endpoint.
+  </Card>
+  <Card title="SSO" icon="shield-halved" href="/integrations/sso">
+    Authenticate your team using SAML 2.0 or OIDC with Okta, Azure AD, Google Workspace, or any compliant identity provider.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Manage agents, pipelines, policies, and approvals programmatically using Sericin's REST API.
+  </Card>
+</CardGroup>
+
+## Common integration patterns
+
+The following patterns cover the most frequent ways teams connect Sericin to the rest of their stack:
+
+- **Stream audit events to your SIEM** — subscribe to events like `policy.denied` and `agent.action.completed` via webhook and forward them to Splunk, Datadog, or your preferred SIEM for centralized logging and alerting.
+- **Trigger pipelines from your CI/CD system** — call `POST /pipelines/{id}/run` from a GitHub Actions workflow or Jenkins pipeline to kick off governance-enforced agent tasks as part of your deployment process.
+- **Provision agents programmatically via the API** — use `POST /agents` and `POST /policies` to create and configure agents as part of your infrastructure-as-code setup, keeping your agent definitions version-controlled alongside the rest of your stack.
+- **Authenticate users through your corporate identity provider** — configure [SSO](/integrations/sso) so your team logs in to Sericin using the same credentials they use for every other internal tool, with role assignments driven by your existing IdP groups.

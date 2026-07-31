@@ -1,0 +1,96 @@
+---
+title: "POST /agents — Register a New Agent"
+sidebarTitle: "Create Agent"
+description: "POST /agents — registers a new agent in your organization. Accepts name, role, description, tags, and optional policy assignments."
+---
+
+The `POST /agents` endpoint registers a new agent in your organization and returns the fully populated agent record. You can assign governance policies at creation time, or add them later using the [Policies API](/api-reference/governance/policies). Agent names must be unique within your organization.
+
+## Request
+
+**Method:** `POST`  
+**URL:** `https://api.sericin.io/v1/agents`
+
+```bash
+curl -X POST https://api.sericin.io/v1/agents \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "invoice-processor",
+    "role": "executor",
+    "description": "Processes and routes incoming vendor invoices.",
+    "tags": ["production", "finance"],
+    "policy_ids": ["pol_abc123", "pol_def456"]
+  }'
+```
+
+## Request Body Parameters
+
+<ParamField body="name" type="string" required>
+  A unique name for the agent within your organization. Use lowercase letters and hyphens only (e.g., `invoice-processor`). Must be between 3 and 64 characters.
+</ParamField>
+
+<ParamField body="role" type="string" required>
+  The agent's operational role. Accepted values: `reader`, `executor`, `coordinator`, or `admin`. The role determines which actions the agent is permitted to initiate.
+</ParamField>
+
+<ParamField body="description" type="string">
+  A human-readable description of the agent's purpose. Helps operators understand the agent's function at a glance in the dashboard and audit logs.
+</ParamField>
+
+<ParamField body="tags" type="array">
+  An array of string tags used for grouping, filtering, and policy targeting (e.g., `["production", "finance"]`). Tags must be lowercase and may contain hyphens.
+</ParamField>
+
+<ParamField body="policy_ids" type="array">
+  An array of policy IDs to assign to the agent at creation time (e.g., `["pol_abc123", "pol_def456"]`). Policies govern what actions the agent is allowed, denied, or must seek approval for.
+</ParamField>
+
+## Response
+
+A successful request returns `201 Created` with the fully populated agent object.
+
+```json
+{
+  "id": "agt_01hx9k2m3nqr4p5s6t7u8v9w",
+  "name": "invoice-processor",
+  "role": "executor",
+  "description": "Processes and routes incoming vendor invoices.",
+  "tags": ["production", "finance"],
+  "policy_ids": ["pol_abc123", "pol_def456"],
+  "status": "active",
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+<ResponseField name="id" type="string">
+  The agent's unique identifier, prefixed with `agt_`. Use this ID in all subsequent requests that reference this agent.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The unique name assigned to the agent at creation.
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  The agent's operational role: `reader`, `executor`, `coordinator`, or `admin`.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The human-readable description provided at creation, or `null` if none was supplied.
+</ResponseField>
+
+<ResponseField name="tags" type="array">
+  The array of string tags assigned to the agent.
+</ResponseField>
+
+<ResponseField name="policy_ids" type="array">
+  The array of policy IDs currently assigned to the agent.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The agent's lifecycle status. Newly created agents always start with `active`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 UTC timestamp of when the agent was registered.
+</ResponseField>

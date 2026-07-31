@@ -1,0 +1,167 @@
+---
+title: "Policies API — Create and Manage Rules"
+sidebarTitle: "Policies"
+description: "REST API endpoints for creating, listing, updating, and deleting governance policies that control agent behavior in Sericin."
+---
+
+Policies are the core governance primitive in Sericin. Each policy defines a set of conditions and an effect — `ALLOW`, `DENY`, or `REQUIRE_APPROVAL` — that Sericin evaluates whenever an agent attempts an action. Use the Policies API to create, inspect, update, delete, and assign policies entirely through code.
+
+## Endpoints
+
+### List Policies
+
+Retrieve all policies in your organization.
+
+```bash
+curl https://api.sericin.io/v1/policies \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "pol_abc123",
+      "name": "require-approval-high-value",
+      "description": "Requires human approval for invoices over $10,000.",
+      "conditions": [
+        { "field": "action.amount", "operator": "gt", "value": 10000 }
+      ],
+      "effect": "REQUIRE_APPROVAL",
+      "approver_group": "finance-leads",
+      "timeout_hours": 24,
+      "created_at": "2024-01-10T08:00:00Z"
+    }
+  ],
+  "next_cursor": null
+}
+```
+
+---
+
+### Create a Policy
+
+Register a new governance policy.
+
+```bash
+curl -X POST https://api.sericin.io/v1/policies \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "deny-external-transfers",
+    "description": "Blocks all fund transfers to external accounts.",
+    "conditions": [
+      { "field": "action.type", "operator": "eq", "value": "external_transfer" }
+    ],
+    "effect": "DENY"
+  }'
+```
+
+A successful request returns `201 Created` with the full policy object.
+
+```json
+{
+  "id": "pol_def456",
+  "name": "deny-external-transfers",
+  "description": "Blocks all fund transfers to external accounts.",
+  "conditions": [
+    { "field": "action.type", "operator": "eq", "value": "external_transfer" }
+  ],
+  "effect": "DENY",
+  "approver_group": null,
+  "timeout_hours": null,
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+---
+
+### Get a Policy
+
+Retrieve a single policy by ID.
+
+```bash
+curl https://api.sericin.io/v1/policies/pol_abc123 \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+Returns `200 OK` with the policy object.
+
+---
+
+### Update a Policy
+
+Partially update an existing policy. Only the fields you include are changed.
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/policies/pol_abc123 \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timeout_hours": 48
+  }'
+```
+
+Returns `200 OK` with the updated policy object.
+
+---
+
+### Delete a Policy
+
+Permanently delete a policy. Agents previously assigned this policy will no longer have it applied.
+
+```bash
+curl -X DELETE https://api.sericin.io/v1/policies/pol_abc123 \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+Returns `204 No Content` on success.
+
+---
+
+### Assign a Policy to an Agent
+
+Associate a policy with a specific agent. The policy takes effect immediately.
+
+```bash
+curl -X POST https://api.sericin.io/v1/policies/pol_abc123/agents/agt_01hx9k2m3nqr4p5s6t7u8v9w \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+Returns `200 OK` on success.
+
+---
+
+## Policy Object Fields
+
+<ResponseField name="id" type="string">
+  The policy's unique identifier, prefixed with `pol_`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  A unique, human-readable name for the policy within your organization.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A plain-language description of what the policy enforces.
+</ResponseField>
+
+<ResponseField name="conditions" type="array">
+  An array of condition objects. Each condition specifies a `field`, an `operator` (e.g., `eq`, `gt`, `lt`, `contains`), and a `value`. All conditions in the array must be satisfied for the policy to trigger (AND logic).
+</ResponseField>
+
+<ResponseField name="effect" type="string">
+  The action Sericin takes when all conditions are met. One of `ALLOW`, `DENY`, or `REQUIRE_APPROVAL`.
+</ResponseField>
+
+<ResponseField name="approver_group" type="string">
+  The identifier of the team or role group responsible for approving requests when `effect` is `REQUIRE_APPROVAL`. Returns `null` for `ALLOW` and `DENY` policies.
+</ResponseField>
+
+<ResponseField name="timeout_hours" type="integer">
+  The number of hours before an unanswered approval request automatically expires. Returns `null` for non-approval policies.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 UTC timestamp of when the policy was created.
+</ResponseField>

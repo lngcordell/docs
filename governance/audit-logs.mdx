@@ -1,0 +1,96 @@
+---
+title: "Audit Logs: Track Agent Actions and Policy Decisions"
+sidebarTitle: "Audit Logs"
+description: "Use Sericin's immutable audit logs to review every agent action, policy decision, and approval outcome for compliance and investigation."
+---
+
+Every action taken by a Sericin agent — and every policy decision made along the way — is automatically recorded in the audit log. You don't need to configure anything for this to happen; logging is active for all agents from the moment they are created. The result is a complete, tamper-proof history you can use for compliance reporting, incident investigation, and ongoing operational oversight.
+
+## What is logged?
+
+Each audit log entry captures the following fields:
+
+- **Agent ID** — the unique identifier of the agent that attempted the action.
+- **Action type** — the type of action attempted (for example, `invoice.submit` or `record.delete`).
+- **Timestamp** — the exact UTC time at which the action was attempted.
+- **Policy evaluation result** — the outcome of the policy engine: `ALLOW`, `DENY`, or `REQUIRE_APPROVAL`.
+- **Approver** — the user who approved or rejected the request, if an approval workflow was triggered.
+- **Outcome** — the final result of the action: `succeeded`, `failed`, or `rejected`.
+- **Metadata payload** — the full action payload as submitted by the agent, including any structured data relevant to the action type.
+
+## Viewing audit logs
+
+### Via the dashboard
+
+Navigate to **Governance > Audit Log** to browse your organization's full log history. Use the filter controls to narrow results by agent, time range, action type, or outcome. Click any entry to expand the full metadata payload and, where applicable, the approval trail.
+
+### Via the API
+
+Use `GET /audit-logs` to retrieve log entries programmatically. The endpoint supports the following query parameters:
+
+| Parameter | Type | Description |
+|---|---|---|
+| `agent_id` | string | Filter by a specific agent. |
+| `from` | ISO 8601 datetime | Return entries at or after this timestamp. |
+| `to` | ISO 8601 datetime | Return entries before or at this timestamp. |
+| `action_type` | string | Filter by action type (for example, `invoice.submit`). |
+| `outcome` | string | Filter by outcome: `succeeded`, `failed`, or `rejected`. |
+
+**Example request:**
+
+```bash
+curl -X GET "https://api.sericin.io/v1/audit-logs?agent_id=agt_xyz789&from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z&outcome=rejected" \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+**Example response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "log_99887766",
+      "agent_id": "agt_xyz789",
+      "action_type": "invoice.submit",
+      "timestamp": "2025-01-15T14:05:42Z",
+      "policy_evaluation_result": "REQUIRE_APPROVAL",
+      "policy_id": "pol_abc123",
+      "approver": "jane.doe@example.com",
+      "outcome": "rejected",
+      "metadata": {
+        "vendor": "Acme Corp",
+        "amount": 24500,
+        "currency": "USD"
+      }
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 50
+}
+```
+
+## Log retention
+
+By default, Sericin retains audit logs for **90 days**. After that window, entries are permanently deleted. If your compliance requirements mandate a longer retention period — for example, SOC 2, HIPAA, or financial regulations that require multi-year records — contact [support@sericin.io](mailto:support@sericin.io) to discuss extended retention options.
+
+## Exporting logs
+
+**CSV export:**
+
+To download audit log data as a CSV file, send the same `GET /audit-logs` request with an `Accept: text/csv` header. Sericin returns the filtered result set as a downloadable CSV, with one log entry per row.
+
+```bash
+curl -X GET "https://api.sericin.io/v1/audit-logs?from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z" \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Accept: text/csv" \
+  -o audit-logs-january-2025.csv
+```
+
+**Real-time webhook streaming:**
+
+If you need to ingest audit events into a SIEM or log aggregation platform in real time, you can configure a webhook to receive a structured event payload for every log entry as it is created. See the [Webhooks integration guide](/integrations/webhooks) for setup instructions.
+
+<Note>
+  Audit logs are immutable. No user — including organization admins — can edit, redact, or delete log entries through the API or the dashboard. This is by design: the integrity of the audit trail is what makes it trustworthy for compliance and investigation purposes.
+</Note>

@@ -1,0 +1,46 @@
+---
+title: "Managing AI Agents in Sericin"
+sidebarTitle: "Overview"
+description: "Learn how Sericin agents work: what they are, how they are registered, and how roles and permissions shape their behavior."
+---
+
+Agents are the primary actors in Sericin. Every automated process, AI worker, or scripted service that needs to take governed actions must be registered as an agent. Once registered, Sericin tracks the agent's identity, enforces its assigned policies, and records every action it attempts — giving you a complete audit trail and fine-grained control over what each agent can do.
+
+## What is an agent?
+
+An agent is a registered AI entity — it could be an LLM-based worker, a script, or an automated service — with a defined identity, role, and action scope in Sericin. Agents do not operate anonymously. Each agent has a unique identifier and a role that determines its baseline capabilities. Policies then layer on top of that role to apply runtime constraints such as rate limits, approval gates, and topic restrictions.
+
+## Agent attributes
+
+Every agent in Sericin carries the following attributes:
+
+| Attribute | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier assigned by Sericin at registration. |
+| `name` | string | Human-readable name you provide. Used in logs and the dashboard. |
+| `role` | string | The agent's capability category (`reader`, `executor`, `coordinator`, or `admin`). |
+| `description` | string | Optional free-text description of the agent's purpose. |
+| `status` | string | Current lifecycle state: `active`, `paused`, or `decommissioned`. |
+| `created_at` | string | ISO 8601 timestamp of when the agent was registered. |
+| `policy_ids` | array | List of policy IDs attached to this agent. |
+
+## Agent states
+
+Sericin uses three lifecycle states to reflect whether an agent is operational, temporarily suspended, or permanently retired.
+
+**active** — The agent is running and is evaluated normally by all attached policies. Use this state for any agent that should be able to take actions.
+
+**paused** — The agent is suspended. All policy evaluations for a paused agent return `DENIED`, so no actions are taken. Pausing is reversible and is the right choice during maintenance windows or when you need to temporarily halt an agent without losing its configuration.
+
+**decommissioned** — The agent has reached permanent end-of-life. Its record is retained for audit purposes, but it cannot be reactivated. Use decommissioning — rather than deletion — to preserve a complete historical record.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Agents" icon="plus" href="/agents/creating-agents">
+    Register a new agent using the dashboard or the REST API.
+  </Card>
+  <Card title="Agent Roles" icon="shield" href="/agents/agent-roles">
+    Understand the built-in roles and assign the right one to each agent.
+  </Card>
+</CardGroup>

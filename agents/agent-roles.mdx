@@ -1,0 +1,43 @@
+---
+title: "Agent Roles and Permission Scopes"
+sidebarTitle: "Roles"
+description: "Understand Sericin's built-in agent roles — reader, executor, coordinator, and admin — and how to assign the right role to each agent."
+---
+
+Roles are the foundation of Sericin's least-privilege model. Every agent must be assigned one of four built-in roles at registration time. The role defines the broadest set of actions the agent can ever take — no agent can exceed the boundaries of its role, regardless of what policies are attached. This means that even if a policy misconfiguration occurs, the role acts as a hard ceiling on the agent's authority.
+
+## Built-in roles
+
+| Role | Permitted Actions | Typical Use Case |
+|---|---|---|
+| `reader` | Read-only access to data and state. Cannot trigger actions or modify resources. | Monitoring agents, reporting agents, audit scrapers. |
+| `executor` | Can take actions within the scope of assigned policies. Cannot manage other agents. | Task automation, data processing, API integrations. |
+| `coordinator` | Can spawn, direct, and terminate other agents in addition to executor capabilities. | Orchestration agents, multi-agent supervisors, workflow managers. |
+| `admin` | Full access to all platform capabilities. Use sparingly. | Trusted system agents that require broad authority across multiple domains. |
+
+## Assigning a role
+
+You set the `role` field when you register an agent. See [Creating Agents](/agents/creating-agents) for the full registration flow. To update a role on an existing agent, send a `PATCH` request to `/v1/agents/{id}`:
+
+```bash
+curl -X PATCH https://api.sericin.io/v1/agents/agt_01j9kxmr4e2v8pqn5c7wd3bt6f \
+  -H "Authorization: Bearer $SERICIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "coordinator"}'
+```
+
+Sericin responds with the updated agent object, reflecting the new role immediately. Any active policy evaluations in progress are completed under the previous role before the change takes effect.
+
+## Role vs. policy
+
+A role and a policy serve different purposes and operate at different levels of granularity.
+
+**Role** is a broad capability category. It answers the question: *what class of operations is this agent allowed to perform at all?* An `executor` can take actions; a `reader` cannot. This boundary is enforced by the platform itself and cannot be overridden by a policy.
+
+**Policy** is a fine-grained runtime control applied on top of the role. Policies answer questions like: *how many requests per minute can this executor make?*, *does this action require a human approval step?*, or *is this executor restricted to a specific set of topics?* Policies narrow and shape behavior within the role's ceiling — they never expand it.
+
+Think of the role as the outer wall and policies as the internal layout. You design the building (role) first, then configure the rooms (policies).
+
+<Warning>
+  The `admin` role grants unrestricted platform access and should be reserved exclusively for trusted system agents with a clear operational requirement. Avoid assigning `admin` to agents involved in user-facing workflows or third-party integrations. Audit all admin agents regularly.
+</Warning>

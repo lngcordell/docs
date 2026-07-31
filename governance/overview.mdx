@@ -1,0 +1,39 @@
+---
+title: "Governance Overview: Policies, Approvals, and Audit"
+sidebarTitle: "Overview"
+description: "Explore Sericin's governance layer: how policies control agent behavior, how approvals protect sensitive actions, and how audit logs ensure accountability."
+---
+
+Sericin's governance layer gives you fine-grained control over what your AI agents can do and creates a verifiable record of everything they have done. Whether you're enforcing business rules, protecting sensitive operations with human review, or demonstrating compliance to auditors, the governance layer sits between every agent action and the outside world — evaluating, gating, and recording in real time.
+
+## The governance model
+
+Every agent action passes through a deterministic evaluation pipeline before it is executed. The flow works as follows:
+
+1. **Agent attempts an action** — the agent calls an action (for example, submitting an invoice or deleting a record).
+2. **Policy engine evaluates** — Sericin checks all policies assigned to that agent against the action's attributes.
+3. **Decision is issued** — the engine returns one of three outcomes:
+   - `ALLOW` — the action proceeds immediately.
+   - `DENY` — the action is blocked and the agent receives an error.
+   - `REQUIRE_APPROVAL` — the action is paused and an approval request is created.
+4. **Approval routing (if required)** — Sericin notifies the designated approver group. An approver reviews the full action context and either approves or rejects the request.
+5. **Action proceeds or is cancelled** — if approved, the agent completes the action; if rejected or timed out, the action is cancelled.
+6. **Event is logged** — regardless of outcome, every step is written to the immutable audit log.
+
+## Key components
+
+<CardGroup cols={3}>
+  <Card title="Policies" icon="shield-check" href="/governance/policies">
+    Define the rules that control what your agents can do, when, and under what conditions.
+  </Card>
+  <Card title="Approvals" icon="user-check" href="/governance/approvals">
+    Set up human-in-the-loop review workflows for sensitive or high-risk agent actions.
+  </Card>
+  <Card title="Audit Logs" icon="scroll" href="/governance/audit-logs">
+    Access an immutable record of every agent action and policy decision for compliance and investigation.
+  </Card>
+</CardGroup>
+
+## Why governance matters
+
+AI agents can act quickly and at scale — qualities that make them powerful but also potentially risky without the right guardrails. Sericin's governance layer helps you meet compliance requirements by enforcing rules consistently across every agent, creates a clear chain of accountability by recording who (or what) authorized each action, and reduces operational risk by requiring human sign-off on the actions that matter most. As your use of agents grows, governance ensures that speed and autonomy never come at the expense of control.

@@ -1,0 +1,104 @@
+---
+title: "Authenticate with the Sericin API"
+sidebarTitle: "Authentication"
+description: "Learn how to generate Sericin API keys, pass them in requests using the Authorization header, and handle authentication errors."
+---
+
+Sericin uses API keys to authenticate every request to the REST API. You generate keys in the dashboard, scope them to the minimum permissions your integration needs, and pass them in the `Authorization` header of every request.
+
+## Generating an API Key
+
+To create a new API key, open the Sericin dashboard and navigate to **Settings → API Keys → New Key**. Give your key a descriptive name that identifies the integration or service using it, select the appropriate scopes, then click **Generate**.
+
+<Note>
+  The full key value is shown **only once**, immediately after generation. Copy it right away and store it in a secrets manager such as AWS Secrets Manager, HashiCorp Vault, or your CI/CD platform's secret store. Sericin cannot retrieve it again after you leave the page.
+</Note>
+
+## Using Your API Key
+
+Pass your key as a Bearer token in the `Authorization` header of every request. The examples below show the pattern across common HTTP clients.
+
+**cURL:**
+
+```bash
+curl https://api.sericin.io/v1/agents \
+  -H "Authorization: Bearer $SERICIN_API_KEY"
+```
+
+<CodeGroup>
+
+```python Python (requests)
+import requests
+import os
+
+api_key = os.environ["SERICIN_API_KEY"]
+
+response = requests.get(
+    "https://api.sericin.io/v1/agents",
+    headers={"Authorization": f"Bearer {api_key}"},
+)
+
+print(response.json())
+```
+
+```javascript Node.js (fetch)
+const response = await fetch("https://api.sericin.io/v1/agents", {
+  headers: {
+    Authorization: `Bearer ${process.env.SERICIN_API_KEY}`,
+  },
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+## API Key Scopes
+
+When you create a key, you assign it one of the following scopes. Use the **minimum scope** required for your integration — this limits the blast radius if a key is ever compromised.
+
+| Scope | Permissions |
+|---|---|
+| `read` | GET requests only; cannot modify any resources |
+| `write` | All HTTP methods (GET, POST, PATCH, DELETE) on standard resources |
+| `admin` | All `write` permissions plus API key management (create, list, delete keys) |
+
+## Rotating Keys
+
+To rotate a key without downtime, follow this sequence:
+
+1. Generate a new key with the same scope as the key you are replacing.
+2. Update your integration or secret store with the new key value.
+3. Verify your integration is working correctly with the new key.
+4. Delete the old key from **Settings → API Keys**.
+
+Deleting a key **immediately and permanently revokes** it. Any request that still uses the old key will receive a `401 Unauthorized` response.
+
+## Authentication Errors
+
+**401 Unauthorized** — the key is missing, malformed, or has been revoked:
+
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid API key"
+  }
+}
+```
+
+**403 Forbidden** — the key is valid but does not have the scope required for the requested action:
+
+```json
+{
+  "error": {
+    "code": "forbidden",
+    "message": "API key lacks the required scope for this action"
+  }
+}
+```
+
+<Warning>
+  Never commit API keys to source control. Use environment variables or a secrets manager in all environments, including local development. Rotate any key that may have been exposed immediately.
+</Warning>

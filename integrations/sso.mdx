@@ -1,0 +1,75 @@
+---
+title: "Configure SSO for Your Sericin Organization"
+sidebarTitle: "SSO"
+description: "Set up SAML 2.0 or OIDC single sign-on for your Sericin organization so your team logs in with your existing identity provider."
+---
+
+Sericin supports SAML 2.0 and OIDC-based SSO, letting your team authenticate using your existing identity provider (IdP). Once SSO is configured, users are redirected to your IdP at login and land in Sericin with the correct role assignments automatically applied.
+
+## Supported identity providers
+
+Sericin works with any SAML 2.0 or OIDC-compliant identity provider. The following providers are tested and documented with step-by-step setup guides:
+
+- **Okta**
+- **Azure Active Directory** (Microsoft Entra ID)
+- **Google Workspace**
+- Any other SAML 2.0 or OIDC-compliant IdP
+
+## Setting up SAML 2.0
+
+<Steps>
+  <Step title="Locate your Sericin service provider details">
+    In Sericin, navigate to **Settings > Security > SSO > Configure SAML**. Copy the **ACS URL** (Assertion Consumer Service URL) and the **Entity ID** — you'll paste these into your IdP in the next step.
+  </Step>
+  <Step title="Create a SAML application in your IdP">
+    In your identity provider's admin console, create a new SAML application. Paste the **ACS URL** into the field labelled "Single Sign-On URL" (or equivalent) and the **Entity ID** into the "Audience URI" (or "SP Entity ID") field.
+  </Step>
+  <Step title="Collect your IdP credentials">
+    After saving the application in your IdP, copy the **IdP SSO URL** and download the **X.509 certificate**.
+  </Step>
+  <Step title="Complete the configuration in Sericin">
+    Return to **Settings > Security > SSO > Configure SAML** in Sericin. Paste the **IdP SSO URL** and the contents of the **X.509 certificate** into the corresponding fields, then click **Save**.
+  </Step>
+  <Step title="Test the connection">
+    Click **Test SSO** to perform an end-to-end authentication check. Sericin will open a new tab and redirect through your IdP. A success message confirms the configuration is working.
+  </Step>
+</Steps>
+
+## Setting up OIDC
+
+<Steps>
+  <Step title="Register an OIDC application in your IdP">
+    In your identity provider's admin console, register a new OIDC (OAuth 2.0) application. Set the **redirect URI** to:
+
+    ```
+    https://app.sericin.io/auth/callback
+    ```
+  </Step>
+  <Step title="Collect your OIDC credentials">
+    After creating the application, copy the **client ID**, **client secret**, and **issuer URL** from your IdP.
+  </Step>
+  <Step title="Enter the credentials in Sericin">
+    In Sericin, navigate to **Settings > Security > SSO > Configure OIDC**. Paste the **client ID**, **client secret**, and **issuer URL** into the corresponding fields and click **Save**.
+  </Step>
+  <Step title="Test the connection">
+    Click **Test SSO** to verify the OIDC flow end-to-end. A success message confirms your users can now log in via your IdP.
+  </Step>
+</Steps>
+
+## Role mapping
+
+Map IdP groups to Sericin roles so that a user's permissions are set automatically at login based on their group membership. Configure mappings in **Settings > Security > SSO > Role Mappings**.
+
+Each mapping specifies an IdP group name (or attribute value) and the Sericin role it should resolve to:
+
+| IdP Group | Sericin Role |
+|-----------|-------------|
+| `engineering` | `member` |
+| `ai-platform-admins` | `admin` |
+| `security-reviewers` | `auditor` |
+
+Mappings are evaluated at every login. If a user's group membership changes in your IdP, their Sericin role is updated on their next sign-in.
+
+<Note>
+  SSO is available on the Enterprise plan. Contact [sales@sericin.io](mailto:sales@sericin.io) to upgrade or to start a trial.
+</Note>
